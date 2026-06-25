@@ -21,10 +21,16 @@ import {
 import { ASSETS, type CycleResult } from "@ai-trading/shared";
 import { CycleRunner } from "./cycleRunner.js";
 import { InMemoryStore } from "./memoryStore.js";
+import type { Store } from "./store.js";
 import { buildRoutes, type MarketQuote } from "./routes.js";
 import { StakingService } from "./staking.js";
 import { createIngestion } from "./ingestion.js";
 import { CycleHistory } from "./history.js";
+import {
+  corsOptions,
+  generalLimiter,
+  securityHeaders,
+} from "./security.js";
 
 for (const path of [
   resolve(process.cwd(), ".env"),
@@ -47,10 +53,23 @@ async function createPrisma() {
 }
 
 async function main() {
-  const store = new InMemoryStore();
-  const staking = new StakingService(store);
-
   const prisma = await createPrisma();
+
+  // Persistent store when a DB is configured; in-memory otherwise.
+  let store: Store;
+  let startCycle = 0;
+  if (prisma) {
+    const { PrismaStore } = await import("./prismaStore.js");
+    const ps = new PrismaStore(prisma);
+    await ps.seed();
+    startCycle = (await ps.lastCycle()) + 1; // resume after the last recorded cycle
+    store = ps;
+    if (startCycle > 0) console.log(`[engine] resuming at cycle ${startCycle}`);
+  } else {
+    store = new InMemoryStore();
+  }
+
+  const staking = new StakingService(store);
 
   let sink: CandleSink;
   if (prisma) {
@@ -82,7 +101,8 @@ async function main() {
       }),
     );
 
-  const scheduler = new CycleScheduler(async (cycle, ts) => {
+  const scheduler = new CycleScheduler(
+    async (cycle, ts) => {
     try {
       lastCycle = await runner.runCycle(cycle, ts);
       await history.record(lastCycle);
@@ -95,11 +115,18 @@ async function main() {
     } catch (err) {
       console.error(`[cycle ${cycle}] failed`, err);
     }
-  });
+    },
+    { startCycle },
+  );
 
   const app = express();
-  app.use(cors());
-  app.use(express.json());
+  // Behind Coolify/Traefik — trust the first proxy so rate limits see real IPs.
+  app.set("trust proxy", 1);
+  app.disable("x-powered-by");
+  app.use(securityHeaders);
+  app.use(cors(corsOptions));
+  app.use(express.json({ limit: "16kb" }));
+  app.use("/api", generalLimiter);
   app.use(
     "/api",
     buildRoutes({ store, staking, lastCycle: () => lastCycle, history, market }),

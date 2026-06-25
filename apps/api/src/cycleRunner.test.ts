@@ -101,6 +101,10 @@ class TestStore implements Store {
     return undefined;
   }
 
+  async getUserByHandle(): Promise<User | undefined> {
+    return undefined;
+  }
+
   async upsertUser(user: User): Promise<User> {
     return user;
   }

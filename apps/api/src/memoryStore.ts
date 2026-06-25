@@ -6,55 +6,12 @@
 import { randomUUID } from "node:crypto";
 import {
   STARTING_BALANCE,
-  type ModelConfig,
   type Position,
   type Stake,
   type User,
 } from "@ai-trading/shared";
 import type { ModelRecord, Store } from "./store.js";
-
-const SEED_MODELS: ModelConfig[] = [
-  {
-    id: "m_chatgpt",
-    name: "ChatGPT",
-    provider: "openai",
-    modelId: process.env.OPENAI_MODEL_ID ?? "gpt-5.5",
-    systemPrompt:
-      "You are a disciplined crypto trader. Prefer liquid momentum setups, but abstain when the signal is weak.",
-  },
-  {
-    id: "m_claude",
-    name: "Claude",
-    provider: "openrouter",
-    modelId: "anthropic/claude-opus-4.8",
-    systemPrompt:
-      "You are a cautious risk manager. Trade only when recent price action supports the direction clearly.",
-  },
-  {
-    id: "m_glm",
-    name: "GLM",
-    provider: "openrouter",
-    modelId: "z-ai/glm-5.2",
-    systemPrompt:
-      "You are a quantitative trader. Use the recent closes to identify short-horizon trend and reversal opportunities.",
-  },
-  {
-    id: "m_mistral",
-    name: "Mistral",
-    provider: "openrouter",
-    modelId: "mistralai/mistral-large-2512",
-    systemPrompt:
-      "You are a fast tactical trader. Look for directional pressure in the latest candles and size confidence conservatively.",
-  },
-  {
-    id: "m_gemini",
-    name: "Gemini",
-    provider: "openrouter",
-    modelId: "google/gemini-3.5-flash",
-    systemPrompt:
-      "You are a balanced multi-asset trader. Choose LONG, SHORT, or FLAT from concise evidence in the latest market snapshot.",
-  },
-];
+import { SEED_MODELS } from "./seedModels.js";
 
 export class InMemoryStore implements Store {
   private models = new Map<string, ModelRecord>();
@@ -89,6 +46,10 @@ export class InMemoryStore implements Store {
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
+  }
+  async getUserByHandle(handle: string): Promise<User | undefined> {
+    const lower = handle.toLowerCase();
+    return [...this.users.values()].find((u) => u.handle.toLowerCase() === lower);
   }
   async upsertUser(user: User): Promise<User> {
     this.users.set(user.id, user);
