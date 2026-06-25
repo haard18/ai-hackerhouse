@@ -1,6 +1,9 @@
 export * from "./source.js";
 export * from "./snapshot.js";
 export * from "./scheduler.js";
+export * from "./stream.js";
+export * from "./buffer.js";
+export * from "./sink.js";
 export { StubMarketDataSource } from "./sources/stub.js";
 export { BinanceMarketDataSource } from "./sources/binance.js";
 

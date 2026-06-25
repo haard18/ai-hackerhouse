@@ -1,25 +1,49 @@
 /**
- * API entrypoint. Wires the store, staking service, cycle runner, the 5-minute
- * scheduler, and the HTTP server. Runs fully on stubs (in-memory store + mock
- * models + stub market data) with no credentials or database.
+ * API entrypoint. Wires the store, staking service, market-data ingestion
+ * (live WS stream + persistence, or offline stub), the cycle runner, the
+ * 5-minute scheduler, and the HTTP server.
+ *
+ * Runs fully on stubs with no credentials. Set MARKET_DATA_SOURCE=binance for
+ * the live feed, and DATABASE_URL (Neon) to persist every closed candle.
  */
 
 import cors from "cors";
 import express from "express";
-import { CycleScheduler, createMarketDataSource } from "@ai-trading/data-feed";
+import {
+  CycleScheduler,
+  ConsoleCandleSink,
+  type CandleSink,
+} from "@ai-trading/data-feed";
 import type { CycleResult } from "@ai-trading/shared";
 import { CycleRunner } from "./cycleRunner.js";
 import { InMemoryStore } from "./memoryStore.js";
 import { buildRoutes } from "./routes.js";
 import { StakingService } from "./staking.js";
+import { createIngestion } from "./ingestion.js";
 
 const PORT = Number(process.env.API_PORT ?? 4000);
+
+/** Build a persistence sink: Prisma/Neon when DATABASE_URL is set, else console. */
+async function createSink(): Promise<CandleSink> {
+  if (!process.env.DATABASE_URL) {
+    console.log("[persist] DATABASE_URL not set — candles logged, not stored.");
+    return new ConsoleCandleSink();
+  }
+  const { PrismaClient } = await import("@prisma/client");
+  const { PrismaCandleSink } = await import("./candleSink.js");
+  console.log("[persist] using Postgres candle store.");
+  return new PrismaCandleSink(new PrismaClient());
+}
 
 async function main() {
   const store = new InMemoryStore();
   const staking = new StakingService(store);
-  const source = createMarketDataSource();
-  const runner = new CycleRunner(store, source);
+
+  const sink = await createSink();
+  const ingestion = createIngestion(sink);
+  await ingestion.start();
+
+  const runner = new CycleRunner(store, ingestion.source);
 
   let lastCycle: CycleResult | null = null;
 
@@ -46,10 +70,19 @@ async function main() {
   app.use(express.json());
   app.use("/api", buildRoutes({ store, staking, lastCycle: () => lastCycle }));
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`API listening on http://localhost:${PORT}`);
-    console.log(`Market data source: ${source.name}`);
+    console.log(`Market data source: ${ingestion.source.name}`);
   });
+
+  const shutdown = () => {
+    console.log("\nshutting down…");
+    ingestion.stop();
+    scheduler.stop();
+    server.close(() => process.exit(0));
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 main().catch((err) => {
