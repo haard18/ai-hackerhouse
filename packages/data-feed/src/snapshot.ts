@@ -5,6 +5,7 @@
 
 import {
   ASSETS,
+  CANDLE_WINDOW,
   type AssetMarketData,
   type AssetSymbol,
   type MarketSnapshot,
@@ -22,7 +23,7 @@ export async function buildSnapshot(
   timestamp: number,
   opts: SnapshotOptions = {},
 ): Promise<MarketSnapshot> {
-  const candleWindow = opts.candleWindow ?? 24;
+  const candleWindow = opts.candleWindow ?? CANDLE_WINDOW;
   setSourceCycle(source, cycle);
 
   const entries = await Promise.all(

@@ -94,6 +94,24 @@ model Position {
   @@index([modelId, cycle])
 }
 
+// Persisted market data: one row per closed 5m candle per asset. This is the
+// full historical feed used for charts, backtesting, and audit.
+model Candle {
+  id       String @id @default(cuid())
+  asset    String
+  interval String @default("5m")
+  openTime BigInt // unix ms at candle open
+  open     Float
+  high     Float
+  low      Float
+  close    Float
+  volume   Float
+
+  // One canonical candle per (asset, interval, openTime) — makes ingest idempotent.
+  @@unique([asset, interval, openTime])
+  @@index([asset, openTime])
+}
+
 // One row per completed cycle, for charting / audit.
 model CycleLog {
   id        String   @id @default(cuid())

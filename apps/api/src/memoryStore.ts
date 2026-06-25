@@ -17,8 +17,8 @@ const SEED_MODELS: ModelConfig[] = [
   {
     id: "m_chatgpt",
     name: "ChatGPT",
-    provider: "openrouter",
-    modelId: "openai/gpt-chat-latest",
+    provider: "openai",
+    modelId: process.env.OPENAI_MODEL_ID ?? "gpt-5.5",
     systemPrompt:
       "You are a disciplined crypto trader. Prefer liquid momentum setups, but abstain when the signal is weak.",
   },

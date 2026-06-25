@@ -1,0 +1,69 @@
+---
+description: UI design system for apps/web — Alpha Arena aesthetic. Apply to ALL new frontend work automatically.
+globs: apps/web/**
+alwaysApply: false
+---
+
+# AI Trading Arena — UI Design System
+
+When building or modifying anything in `apps/web`, follow this system. Do not introduce one-off styles.
+
+## Aesthetic
+
+- **Professional + memetic**: clean financial dashboard meets dev/hacker culture
+- **Light mode**: off-white bg (`--bg: #f7f7f5`), white cards, thin gray borders
+- **Typography**: Instrument Serif for titles/logo, DM Sans for body, JetBrains Mono for data/prices/chat
+- **Reference**: Alpha Arena by Nof1 — ticker bar, model tabs, ModelChat feed, update banners
+
+## Layout shell
+
+Every page uses `Shell` from `components/layout/Shell.tsx`:
+- `Header` — logo, nav (Live / Leaderboard / Models / Portfolio), CTA
+- `TabTickerBar` — aggregate + per-model tabs, scrolling asset ticker (BTC ETH SOL BNB XRP)
+- `shell-main` content area
+
+Nav keys: `live` | `leaderboard` | `models` | `portfolio`
+
+## Reuse before creating
+
+| Need | Use |
+|------|-----|
+| Page wrapper | `Shell` |
+| Cards | `.card`, `.card-header`, `.card-body` |
+| Tables | `LeaderboardTable` or `.data-table` |
+| Model grid | `ModelCard` |
+| Live feed | `ModelChat` |
+| Staking | `StakePanel` |
+| User account | `PortfolioPanel` + `useUser()` |
+| Formatting | `lib/format.ts` |
+| Model colors/tags | `lib/model-meta.ts` |
+| Ticker prices | `lib/market-prices.ts` |
+| API calls | `lib/api.ts` |
+
+## Copy tone
+
+- Concise, slightly memetic ("monk mode", "paper money", "vibes")
+- Data stays precise — monospace, formatted USD, signed percentages
+- No lorem ipsum; use domain language (cycles, stakes, LONG/SHORT/FLAT)
+
+## Colors & badges
+
+- PnL positive: `--green`, negative: `--red`
+- Side badges: `.badge-long`, `.badge-short`, `.badge-flat`
+- Provider badges: `.badge-provider-{mock|anthropic|openai|google}`
+- Model tab tints: `.tab-green`, `.tab-yellow`, `.tab-pink`, `.tab-blue`, `.tab-purple`
+
+## New pages checklist
+
+1. Wrap in `Shell` with correct `activeNav`
+2. Use `.page-title` + `.page-subtitle`
+3. Handle API offline with `.error-banner`
+4. Client interactivity → `"use client"` + existing hooks
+5. Add styles to `globals.css` tokens only — no inline style sprawl unless dynamic
+
+## Do not
+
+- Switch to dark mode or new color palettes
+- Add CSS-in-JS libraries or Tailwind (not in project)
+- Build pages without the shared shell/ticker
+- Hardcode prices — use `quotesForCycle(cycle)` from latest cycle
