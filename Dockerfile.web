@@ -1,0 +1,26 @@
+# ── Web image: Next.js frontend ─────────────────────────────────────────────
+# NEXT_PUBLIC_API_URL is baked into the client bundle at BUILD time, so it must
+# be passed as a build arg and set to the API's PUBLIC url (the browser calls it
+# directly, not the internal docker hostname).
+
+FROM node:22-slim AS builder
+RUN corepack enable
+WORKDIR /app
+
+ARG NEXT_PUBLIC_API_URL=http://localhost:4000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter "@ai-trading/web..." build
+
+# ── runtime ─────────────────────────────────────────────────────────────────
+FROM node:22-slim AS runner
+RUN corepack enable
+ENV NODE_ENV=production
+WORKDIR /app
+
+COPY --from=builder /app /app
+
+EXPOSE 3000
+CMD ["pnpm", "--filter", "@ai-trading/web", "start"]

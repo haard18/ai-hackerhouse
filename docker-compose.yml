@@ -1,0 +1,57 @@
+# AI Trading Arena — Coolify / docker-compose deployment.
+#
+# Database is external (Neon), so no postgres service here. Set the variables
+# below in the Coolify UI (or a local .env next to this file for `docker compose`).
+#
+# IMPORTANT: NEXT_PUBLIC_API_URL must be the API's PUBLIC url (the browser calls
+# it directly). It is baked at build time, so changing it requires a rebuild.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      API_PORT: 4000
+      DATABASE_URL: ${DATABASE_URL}
+      MARKET_DATA_SOURCE: ${MARKET_DATA_SOURCE:-binance}
+      MARKET_DATA_BASE_URL: ${MARKET_DATA_BASE_URL:-https://api.binance.com}
+      MARKET_DATA_WS_BASE: ${MARKET_DATA_WS_BASE:-wss://stream.binance.com:9443}
+      CYCLE_INTERVAL_MS: ${CYCLE_INTERVAL_MS:-300000}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      OPENROUTER_SITE_URL: ${OPENROUTER_SITE_URL:-}
+      OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-AI Trading Arena}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL_ID: ${OPENAI_MODEL_ID:-gpt-5.5}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-medium}
+    expose:
+      - "4000"
+    ports:
+      - "${API_PORT:-4000}:4000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        # Public URL of the API — used by the browser. Override in Coolify.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    expose:
+      - "3000"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

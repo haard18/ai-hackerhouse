@@ -1,0 +1,14 @@
+# Build fresh inside the image — never copy host artifacts/secrets.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+.git
+.github
+*.log
+.env
+.env.*
+!.env.example
+**/*.tsbuildinfo
+scratchpad
+README*.md
