@@ -39,14 +39,6 @@ const SEED_MODELS: ModelConfig[] = [
       "You are a quantitative trader. Use the recent closes to identify short-horizon trend and reversal opportunities.",
   },
   {
-    id: "m_kimi",
-    name: "Kimi K2.6",
-    provider: "openrouter",
-    modelId: "moonshotai/kimi-k2.6",
-    systemPrompt:
-      "You are an adaptive crypto trader. Balance momentum with mean reversion and avoid low-conviction trades.",
-  },
-  {
     id: "m_mistral",
     name: "Mistral",
     provider: "openrouter",
