@@ -26,5 +26,14 @@ export const LEVERAGE = 1;
 /** How often (ms) data is fed to models and positions resolve. Default 5 min. */
 export const CYCLE_INTERVAL_MS = 5 * 60 * 1000;
 
+/** Candle interval models trade on. Must match the cycle cadence. */
+export const CANDLE_INTERVAL = "5m";
+
+/**
+ * Number of recent candles per asset included in each snapshot fed to models
+ * (24 × 5m = 2h of price context). Override per-call where needed.
+ */
+export const CANDLE_WINDOW = 24;
+
 /** Smallest stake a user can place on a model. */
 export const MIN_STAKE = 1;
