@@ -5,6 +5,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -21,12 +22,19 @@ export interface IndexChartModel {
 }
 
 interface IndexChartProps {
-  /** One row per cycle: { label, cycle, tvl, [modelId]: balance }. */
+  /** One row per cycle: { label, cycle, tvl, [modelId]: value }. */
   data: Array<Record<string, number | string>>;
   models: IndexChartModel[];
+  /** "pct" = indexed return (aggregate); "usd" = raw balance (single model). */
+  mode?: "usd" | "pct";
 }
 
-export function IndexChart({ data, models }: IndexChartProps) {
+export function IndexChart({ data, models, mode = "usd" }: IndexChartProps) {
+  const pct = mode === "pct";
+  const fmtValue = (v: unknown) =>
+    pct
+      ? `${Number(v) >= 0 ? "+" : ""}${Number(v ?? 0).toFixed(2)}%`
+      : formatUsd(Number(v ?? 0));
   // A line needs at least two points; show a friendly placeholder until the
   // equity timeseries accumulates a few cycles.
   if (data.length < 2 || !models.length) {
@@ -61,15 +69,20 @@ export function IndexChart({ data, models }: IndexChartProps) {
             tickLine={false}
           />
           <YAxis
-            // Zoom to the data range so small balance moves are visible
-            // (balances hover near $10k; a 0-based axis flattens them).
+            // Zoom to the data range so small moves are visible (a 0-based
+            // axis would flatten balances that hover near $10k).
             domain={["auto", "auto"]}
             tick={{ fill: CHART.axis, fontSize: 10, fontFamily: "monospace" }}
             axisLine={false}
             tickLine={false}
-            tickFormatter={(v) => `$${(Number(v) / 1000).toFixed(1)}k`}
+            tickFormatter={(v) =>
+              pct
+                ? `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(1)}%`
+                : `$${(Number(v) / 1000).toFixed(1)}k`
+            }
             width={52}
           />
+          {pct && <ReferenceLine y={0} stroke={CHART.grid} strokeDasharray="3 3" />}
           <Tooltip
             contentStyle={{
               background: CHART.tooltipBg,
@@ -79,7 +92,7 @@ export function IndexChart({ data, models }: IndexChartProps) {
               fontSize: 11,
               boxShadow: "none",
             }}
-            formatter={(v, name) => [formatUsd(Number(v ?? 0)), String(name)]}
+            formatter={(v, name) => [fmtValue(v), String(name)]}
           />
           <Legend
             wrapperStyle={{ fontFamily: "monospace", fontSize: 10, paddingTop: 6 }}
