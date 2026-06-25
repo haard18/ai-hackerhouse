@@ -7,9 +7,11 @@ market snapshot is fed to every model; each decides **LONG / SHORT / FLAT
 on signup and can **stake** it on any model — they receive pool shares and can
 **claim** their share of the model's balance at any cycle end.
 
-> Everything in this repo is **stubbed** and runs end-to-end with no API keys and
-> no database (in-memory store + mock models + fake market data). Swap the stubs
-> for real implementations workstream by workstream.
+> The repo runs end-to-end with no database by default (in-memory store + stub
+> market data). Model calls use OpenRouter when `OPENROUTER_API_KEY` is
+> configured; if it is missing or a model response is invalid, that model safely
+> abstains with all-FLAT decisions. Set `MARKET_DATA_SOURCE=binance` for live
+> public 5-minute candles from Binance.
 
 ## How staking pays out
 
@@ -43,8 +45,8 @@ apps/
 
 | Who      | Area        | Where                          | What to build next                                   |
 | -------- | ----------- | ------------------------------ | ---------------------------------------------------- |
-| Haard    | Data feed   | `packages/data-feed`           | Real exchange source (`sources/binance.ts` TODO), WS |
-| Yug      | Models      | `packages/models`              | Wire `anthropic` / `openai` / `google` adapters      |
+| Haard    | Data feed   | `packages/data-feed`           | Add WS/caching on top of Binance REST                |
+| Yug      | Models      | `packages/models`              | Tune OpenRouter model roster and trading prompts     |
 | Aashwin  | Frontend    | `apps/web`                     | Staking UI, model detail, charts, auth               |
 | Shared   | Engine/API  | `apps/api`                     | Swap `InMemoryStore` -> `PrismaStore`, persist cycles |
 
@@ -53,6 +55,8 @@ apps/
 ```bash
 pnpm install
 cp .env.example .env          # defaults work as-is (stub mode)
+# Add OPENROUTER_API_KEY in .env to run real model decisions
+# Optional: set MARKET_DATA_SOURCE=binance for live market candles
 
 # Backend: runs cycle 0 immediately, then every 5 min
 pnpm --filter @ai-trading/api dev      # http://localhost:4000
@@ -79,8 +83,9 @@ pnpm typecheck   # type-checks every package
 
 - Replace `InMemoryStore` (`apps/api/src/memoryStore.ts`) with a `PrismaStore`
   backed by `apps/api/prisma/schema.prisma` (`pnpm db:push`).
-- Implement a real `MarketDataSource` and set `MARKET_DATA_SOURCE=binance`.
-- Implement the provider adapters in `packages/models/src/providers/`.
+- Keep `MARKET_DATA_SOURCE=binance` for live candles; add a WS/cache layer if
+  request volume grows.
+- Add persistence for raw OpenRouter decisions and resolved positions.
 - Replace `setInterval` scheduling with a durable job runner so cycles survive
   restarts and don't drift.
 

@@ -7,7 +7,10 @@
  * the live feed, and DATABASE_URL (Neon) to persist every closed candle.
  */
 
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import cors from "cors";
+import { config as loadEnv } from "dotenv";
 import express from "express";
 import {
   CycleScheduler,
@@ -20,6 +23,13 @@ import { InMemoryStore } from "./memoryStore.js";
 import { buildRoutes } from "./routes.js";
 import { StakingService } from "./staking.js";
 import { createIngestion } from "./ingestion.js";
+
+for (const path of [
+  resolve(process.cwd(), ".env"),
+  resolve(process.cwd(), "../../.env"),
+].filter(existsSync)) {
+  loadEnv({ path });
+}
 
 const PORT = Number(process.env.API_PORT ?? 4000);
 
@@ -61,10 +71,6 @@ async function main() {
     }
   });
 
-  // Run cycle 0 immediately so the dashboard has data, then every 5 min.
-  await scheduler.tick();
-  scheduler.start();
-
   const app = express();
   app.use(cors());
   app.use(express.json());
@@ -81,8 +87,11 @@ async function main() {
     scheduler.stop();
     server.close(() => process.exit(0));
   };
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+
+  void scheduler.tick();
+  scheduler.start();
 }
 
 main().catch((err) => {

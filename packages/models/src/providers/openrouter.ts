@@ -1,16 +1,16 @@
 /**
- * OpenAIModelAdapter — direct ChatGPT/OpenAI API adapter.
+ * OpenRouterModelAdapter — OpenAI-compatible chat completions adapter.
  *
- * Uses OPENAI_API_KEY for the ChatGPT competitor. Bad/missing credentials,
- * transport errors, and malformed replies degrade to all-FLAT through the
- * shared parser so one provider cannot crash a trading cycle.
+ * Uses one OpenRouter key for all competitor models. If the key is missing or a
+ * model returns bad JSON, the shared parser degrades that model to all-FLAT so
+ * the cycle runner keeps moving.
  */
 
 import type { CycleDecision } from "@ai-trading/shared";
 import type { DecisionRequest, ModelAdapter } from "../adapter.js";
 import { buildUserPrompt, parseDecision } from "../prompt.js";
 
-interface OpenAIChatResponse {
+interface OpenRouterChatResponse {
   choices?: Array<{
     message?: {
       content?: unknown;
@@ -21,30 +21,19 @@ interface OpenAIChatResponse {
   };
 }
 
-type OpenAIReasoningEffort =
-  | "none"
-  | "minimal"
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh";
-
-export class OpenAIModelAdapter implements ModelAdapter {
-  readonly provider = "openai";
+export class OpenRouterModelAdapter implements ModelAdapter {
+  readonly provider = "openrouter";
 
   constructor(
-    private readonly apiKey = process.env.OPENAI_API_KEY ?? "",
+    private readonly apiKey = process.env.OPENROUTER_API_KEY ?? "",
     private readonly baseUrl =
-      process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
-    private readonly timeoutMs = Number(process.env.OPENAI_TIMEOUT_MS ?? 60_000),
-    private readonly reasoningEffort = parseReasoningEffort(
-      process.env.OPENAI_REASONING_EFFORT ?? "xhigh",
-    ),
+      process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
+    private readonly timeoutMs = Number(process.env.OPENROUTER_TIMEOUT_MS ?? 60_000),
   ) {}
 
   async decide({ config, snapshot }: DecisionRequest): Promise<CycleDecision> {
     if (!this.apiKey) {
-      return parseDecision("OPENAI_API_KEY is not configured", config.id, snapshot.cycle);
+      return parseDecision("OPENROUTER_API_KEY is not configured", config.id, snapshot.cycle);
     }
 
     try {
@@ -54,6 +43,8 @@ export class OpenAIModelAdapter implements ModelAdapter {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": process.env.OPENROUTER_SITE_URL ?? "http://localhost:4000",
+          "X-Title": process.env.OPENROUTER_APP_NAME ?? "AI Trading Arena",
         },
         body: JSON.stringify({
           model: config.modelId,
@@ -63,17 +54,16 @@ export class OpenAIModelAdapter implements ModelAdapter {
           ],
           temperature: 0.2,
           max_tokens: 900,
-          reasoning_effort: this.reasoningEffort,
           response_format: { type: "json_object" },
         }),
       });
 
       const bodyText = await response.text();
       if (!response.ok) {
-        return parseDecision(`OpenAI ${response.status}: ${bodyText}`, config.id, snapshot.cycle);
+        return parseDecision(`OpenRouter ${response.status}: ${bodyText}`, config.id, snapshot.cycle);
       }
 
-      const body = JSON.parse(bodyText) as OpenAIChatResponse;
+      const body = JSON.parse(bodyText) as OpenRouterChatResponse;
       const raw =
         extractContent(body.choices?.[0]?.message?.content) ??
         body.error?.message ??
@@ -81,23 +71,9 @@ export class OpenAIModelAdapter implements ModelAdapter {
 
       return parseDecision(raw, config.id, snapshot.cycle);
     } catch (err) {
-      return parseDecision(`OpenAI adapter error: ${(err as Error).message}`, config.id, snapshot.cycle);
+      return parseDecision(`OpenRouter adapter error: ${(err as Error).message}`, config.id, snapshot.cycle);
     }
   }
-}
-
-function parseReasoningEffort(value: string): OpenAIReasoningEffort {
-  const allowed: OpenAIReasoningEffort[] = [
-    "none",
-    "minimal",
-    "low",
-    "medium",
-    "high",
-    "xhigh",
-  ];
-  return allowed.includes(value as OpenAIReasoningEffort)
-    ? (value as OpenAIReasoningEffort)
-    : "xhigh";
 }
 
 function extractContent(content: unknown): string | undefined {

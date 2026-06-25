@@ -10,20 +10,21 @@ export interface ModelVisual {
 const DEFAULT: ModelVisual = {
   tabClass: "tab-blue",
   tag: "Baseline",
-  icon: "◆",
+  icon: "*",
   chatColor: "#333",
 };
 
 const BY_ID: Record<string, Partial<ModelVisual>> = {
-  m_momentum: { tabClass: "tab-green", tag: "Monk Mode", icon: "▲", chatColor: "#1a7f4c" },
-  m_contrarian: { tabClass: "tab-pink", tag: "Situational Awareness", icon: "◉", chatColor: "#c0392b" },
+  m_momentum: { tabClass: "tab-green", tag: "Monk Mode", icon: "^", chatColor: "#1a7f4c" },
+  m_contrarian: { tabClass: "tab-pink", tag: "Situational Awareness", icon: "o", chatColor: "#c0392b" },
 };
 
 const BY_PROVIDER: Record<ModelProvider, Partial<ModelVisual>> = {
   mock: { tabClass: "tab-yellow", tag: "Paper Trader" },
-  anthropic: { tabClass: "tab-pink", tag: "Claude Brain", icon: "✦" },
-  openai: { tabClass: "tab-green", tag: "GPT Mode", icon: "◎" },
-  google: { tabClass: "tab-blue", tag: "Gemini Pulse", icon: "★" },
+  anthropic: { tabClass: "tab-pink", tag: "Claude Brain", icon: "C" },
+  openai: { tabClass: "tab-green", tag: "GPT Mode", icon: "G" },
+  google: { tabClass: "tab-blue", tag: "Gemini Pulse", icon: "*" },
+  openrouter: { tabClass: "tab-blue", tag: "OpenRouter", icon: "OR" },
 };
 
 export function modelVisual(id: string, provider: ModelProvider): ModelVisual {

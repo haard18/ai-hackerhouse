@@ -1,18 +1,9 @@
 /**
  * BinanceMarketDataSource — live market data from Binance public REST klines.
  *
- * No API key required (public market-data endpoints). One request per asset per
- * cycle = 5 requests / 5 min, which is trivially within Binance's rate limits.
- *
- * Endpoint: GET /api/v3/klines?symbol=BTCUSDT&interval=5m&limit=N
- * Response: array of arrays — [openTime, open, high, low, close, volume, ...].
- *
- * Region note: `api.binance.com` is geo-blocked in some countries (e.g. US).
- * Set MARKET_DATA_BASE_URL=https://api.binance.us there (same symbol map works).
- *
- * Security (CLAUDE.md): every response field is validated and coerced to a
- * finite number before use; requests are timed out; nothing is logged that
- * could leak secrets (there are none here).
+ * No API key required. One REST request per asset per cycle is comfortably
+ * within Binance public rate limits. Responses are validated and coerced before
+ * becoming Candle objects so a bad upstream payload fails loudly.
  */
 
 import type { AssetMarketData, AssetSymbol, Candle } from "@ai-trading/shared";
@@ -26,13 +17,10 @@ const SYMBOL_MAP: Record<AssetSymbol, string> = {
   XRP: "XRPUSDT",
 };
 
-/** Raw kline tuple shape we depend on (first 6 fields). */
-type RawKline = [number, string, string, string, string, string, ...unknown[]];
-
 export interface BinanceOptions {
   /** API base, e.g. https://api.binance.com or https://api.binance.us. */
   baseUrl?: string;
-  /** Candle interval. Must match the cycle cadence (default 5m). */
+  /** Candle interval. Must match the cycle cadence. */
   interval?: string;
   /** Per-request timeout in ms. */
   timeoutMs?: number;
@@ -44,31 +32,36 @@ export class BinanceMarketDataSource implements MarketDataSource {
   private readonly interval: string;
   private readonly timeoutMs: number;
 
-  constructor(opts: BinanceOptions = {}) {
+  constructor(opts: BinanceOptions | string = {}) {
+    const options = typeof opts === "string" ? { baseUrl: opts } : opts;
     this.baseUrl =
-      opts.baseUrl ??
+      options.baseUrl ??
       process.env.MARKET_DATA_BASE_URL ??
+      process.env.BINANCE_API_BASE ??
       "https://api.binance.com";
-    this.interval = opts.interval ?? "5m";
-    this.timeoutMs = opts.timeoutMs ?? 8_000;
+    this.interval = options.interval ?? "5m";
+    this.timeoutMs = positiveMs(
+      options.timeoutMs ?? Number(process.env.MARKET_DATA_TIMEOUT_MS ?? 8_000),
+      8_000,
+    );
   }
 
   async getCandles(asset: AssetSymbol, limit: number): Promise<Candle[]> {
     const symbol = SYMBOL_MAP[asset];
-    const url =
-      `${this.baseUrl}/api/v3/klines?symbol=${symbol}` +
-      `&interval=${this.interval}&limit=${Math.max(1, Math.min(1000, limit))}`;
+    const safeLimit = Math.max(1, Math.min(1000, Math.floor(limit)));
+    const url = new URL("/api/v3/klines", this.baseUrl);
+    url.searchParams.set("symbol", symbol);
+    url.searchParams.set("interval", this.interval);
+    url.searchParams.set("limit", String(safeLimit));
 
     const raw = await this.fetchJson(url);
     if (!Array.isArray(raw)) {
       throw new Error(`binance: unexpected klines payload for ${symbol}`);
     }
 
-    const candles: Candle[] = [];
-    for (const row of raw as RawKline[]) {
-      const candle = this.parseKline(asset, row);
-      if (candle) candles.push(candle);
-    }
+    const candles = raw.map((row, index) =>
+      parseKline(asset, symbol, row, index),
+    );
     if (candles.length === 0) {
       throw new Error(`binance: no valid candles for ${symbol}`);
     }
@@ -80,41 +73,60 @@ export class BinanceMarketDataSource implements MarketDataSource {
     candleWindow: number,
   ): Promise<AssetMarketData> {
     const candles = await this.getCandles(asset, candleWindow);
-    const price = candles[candles.length - 1]!.close;
+    const price = candles[candles.length - 1]?.close;
+    if (!price) throw new Error(`binance: no latest price for ${SYMBOL_MAP[asset]}`);
     return { asset, price, candles };
   }
 
-  // ── internals ──────────────────────────────────────────────────────────
-
-  private async fetchJson(url: string): Promise<unknown> {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), this.timeoutMs);
-    try {
-      const res = await fetch(url, {
-        signal: controller.signal,
-        headers: { accept: "application/json" },
-      });
-      if (!res.ok) {
-        throw new Error(`binance: HTTP ${res.status} for ${url}`);
-      }
-      return await res.json();
-    } finally {
-      clearTimeout(t);
+  private async fetchJson(url: URL): Promise<unknown> {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(this.timeoutMs),
+      headers: { accept: "application/json" },
+    });
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`binance: HTTP ${response.status} for ${url.toString()}`);
     }
+    return JSON.parse(body) as unknown;
+  }
+}
+
+function parseKline(
+  asset: AssetSymbol,
+  symbol: string,
+  row: unknown,
+  index: number,
+): Candle {
+  if (!Array.isArray(row) || row.length < 6) {
+    throw new Error(`binance: invalid kline ${symbol}[${index}]`);
   }
 
-  /** Validate + coerce one kline row. Returns null if malformed. */
-  private parseKline(asset: AssetSymbol, row: RawKline): Candle | null {
-    if (!Array.isArray(row) || row.length < 6) return null;
-    const openTime = Number(row[0]);
-    const open = Number(row[1]);
-    const high = Number(row[2]);
-    const low = Number(row[3]);
-    const close = Number(row[4]);
-    const volume = Number(row[5]);
-    const nums = [openTime, open, high, low, close, volume];
-    if (nums.some((n) => !Number.isFinite(n))) return null;
-    if (open <= 0 || close <= 0) return null;
-    return { asset, openTime, open, high, low, close, volume };
+  const openTime = parseNumber(row[0], `${symbol}[${index}].openTime`);
+  const open = parseNumber(row[1], `${symbol}[${index}].open`);
+  const high = parseNumber(row[2], `${symbol}[${index}].high`);
+  const low = parseNumber(row[3], `${symbol}[${index}].low`);
+  const close = parseNumber(row[4], `${symbol}[${index}].close`);
+  const volume = parseNumber(row[5], `${symbol}[${index}].volume`);
+
+  if (open <= 0 || high <= 0 || low <= 0 || close <= 0 || volume < 0) {
+    throw new Error(`binance: invalid non-positive OHLCV for ${symbol}[${index}]`);
   }
+  if (high < Math.max(open, close) || low > Math.min(open, close)) {
+    throw new Error(`binance: invalid OHLC relationship for ${symbol}[${index}]`);
+  }
+
+  return { asset, openTime, open, high, low, close, volume };
+}
+
+function parseNumber(value: unknown, label: string): number {
+  const parsed =
+    typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`binance: invalid numeric field ${label}`);
+  }
+  return parsed;
+}
+
+function positiveMs(value: number, fallback: number): number {
+  return Number.isFinite(value) && value > 0 ? value : fallback;
 }
