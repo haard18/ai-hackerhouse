@@ -10,6 +10,8 @@ export interface LeaderboardEntry {
   id: string;
   name: string;
   provider: string;
+  modelId: string;
+  reasoningEffort?: string;
   balance: number;
   totalShares: number;
   active: boolean;

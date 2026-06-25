@@ -39,6 +39,10 @@ export function LeaderboardTable({ models, showLink = true }: LeaderboardTablePr
                   ) : (
                     m.name
                   )}
+                  <div className="mono" style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>
+                    {m.modelId}
+                    {m.reasoningEffort ? ` · ${m.reasoningEffort}` : ""}
+                  </div>
                 </td>
                 <td>
                   <span className={providerBadgeClass(m.provider as "mock")}>{m.provider}</span>

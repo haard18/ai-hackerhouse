@@ -23,6 +23,10 @@ export function ModelCard({ model, rank }: ModelCardProps) {
         </div>
         <h3 className="model-card-name">{model.name}</h3>
         <span className={providerBadgeClass(model.provider as "mock")}>{model.provider}</span>
+        <div className="mono" style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 8 }}>
+          {model.modelId}
+          {model.reasoningEffort ? ` · ${model.reasoningEffort}` : ""}
+        </div>
         <div className="model-card-balance">{formatUsd(model.balance)}</div>
         <div className={`mono ${pnlClass(ret)}`} style={{ fontSize: 13 }}>
           {ret >= 0 ? "+" : ""}{ret.toFixed(2)}% all time

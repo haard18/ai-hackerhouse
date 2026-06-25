@@ -21,6 +21,14 @@ interface OpenAIChatResponse {
   };
 }
 
+type OpenAIReasoningEffort =
+  | "none"
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh";
+
 export class OpenAIModelAdapter implements ModelAdapter {
   readonly provider = "openai";
 
@@ -29,6 +37,9 @@ export class OpenAIModelAdapter implements ModelAdapter {
     private readonly baseUrl =
       process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
     private readonly timeoutMs = Number(process.env.OPENAI_TIMEOUT_MS ?? 60_000),
+    private readonly reasoningEffort = parseReasoningEffort(
+      process.env.OPENAI_REASONING_EFFORT ?? "xhigh",
+    ),
   ) {}
 
   async decide({ config, snapshot }: DecisionRequest): Promise<CycleDecision> {
@@ -52,6 +63,7 @@ export class OpenAIModelAdapter implements ModelAdapter {
           ],
           temperature: 0.2,
           max_tokens: 900,
+          reasoning_effort: this.reasoningEffort,
           response_format: { type: "json_object" },
         }),
       });
@@ -72,6 +84,20 @@ export class OpenAIModelAdapter implements ModelAdapter {
       return parseDecision(`OpenAI adapter error: ${(err as Error).message}`, config.id, snapshot.cycle);
     }
   }
+}
+
+function parseReasoningEffort(value: string): OpenAIReasoningEffort {
+  const allowed: OpenAIReasoningEffort[] = [
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+  ];
+  return allowed.includes(value as OpenAIReasoningEffort)
+    ? (value as OpenAIReasoningEffort)
+    : "xhigh";
 }
 
 function extractContent(content: unknown): string | undefined {
