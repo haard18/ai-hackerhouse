@@ -1,6 +1,12 @@
+/** Coerce any input to a finite number (undefined/NaN/strings → 0). */
+function num(n: unknown): number {
+  const v = typeof n === "number" ? n : Number(n);
+  return Number.isFinite(v) ? v : 0;
+}
+
 export function formatUsd(n: number, opts?: { decimals?: number }): string {
   const decimals = opts?.decimals ?? 0;
-  return `$${n.toLocaleString(undefined, {
+  return `$${num(n).toLocaleString(undefined, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })}`;
@@ -8,19 +14,21 @@ export function formatUsd(n: number, opts?: { decimals?: number }): string {
 
 export function formatPrice(asset: string, price: number): string {
   const decimals = asset === "XRP" ? 4 : asset === "ETH" || asset === "SOL" ? 2 : 0;
-  return price.toLocaleString(undefined, {
+  return num(price).toLocaleString(undefined, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
 }
 
 export function formatPct(n: number): string {
-  const sign = n >= 0 ? "+" : "";
-  return `${sign}${n.toFixed(2)}%`;
+  const v = num(n);
+  const sign = v >= 0 ? "+" : "";
+  return `${sign}${v.toFixed(2)}%`;
 }
 
 export function formatTime(ts: number): string {
-  const d = new Date(ts);
+  const d = new Date(num(ts));
+  if (Number.isNaN(d.getTime())) return "—";
   const pad = (x: number) => String(x).padStart(2, "0");
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }

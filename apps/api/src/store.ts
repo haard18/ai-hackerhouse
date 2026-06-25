@@ -16,11 +16,15 @@ export interface Store {
   listModels(): Promise<ModelRecord[]>;
   getModel(id: string): Promise<ModelRecord | undefined>;
   updateModelPool(id: string, balance: number, totalShares: number): Promise<void>;
+  /** Atomic relative update — composes safely under concurrent stakes/cycles. */
+  adjustModelPool(id: string, balanceDelta: number, sharesDelta: number): Promise<void>;
 
   getUser(id: string): Promise<User | undefined>;
   getUserByHandle(handle: string): Promise<User | undefined>;
   upsertUser(user: User): Promise<User>;
   updateUserBalance(id: string, balance: number): Promise<void>;
+  /** Atomic relative update of a user's free balance. */
+  adjustUserBalance(id: string, delta: number): Promise<void>;
 
   listStakes(filter: { userId?: string; modelId?: string }): Promise<Stake[]>;
   getStake(userId: string, modelId: string): Promise<Stake | undefined>;

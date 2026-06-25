@@ -35,7 +35,9 @@ export function sharesForDeposit(
   poolBalance: number,
   totalShares: number,
 ): number {
-  if (amount <= 0) throw new Error("deposit amount must be positive");
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("deposit amount must be a positive number");
+  }
   return amount / sharePrice(poolBalance, totalShares);
 }
 
@@ -81,16 +83,25 @@ export interface ClaimResult {
   newPoolBalance: number;
 }
 
+/** Tiny share quantity treated as "all remaining" to avoid float dust. */
+const SHARE_EPSILON = 1e-6;
+
 /** Redeem `shares` for their current paper value at a cycle end. */
 export function applyClaim(
   shares: number,
   poolBalance: number,
   totalShares: number,
 ): ClaimResult {
+  // Redeeming (within dust of) the entire pool drains it exactly: pool and
+  // shares hit zero together, so the invariant `shares==0 ⇒ balance==0` holds
+  // and no orphaned balance is left to be mispriced by the next depositor.
+  if (shares >= totalShares - SHARE_EPSILON) {
+    return { payout: poolBalance, newTotalShares: 0, newPoolBalance: 0 };
+  }
   const payout = claimValue(shares, poolBalance, totalShares);
   return {
     payout,
-    newTotalShares: Math.max(0, totalShares - shares),
-    newPoolBalance: Math.max(0, poolBalance - payout),
+    newTotalShares: totalShares - shares,
+    newPoolBalance: poolBalance - payout,
   };
 }

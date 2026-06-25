@@ -25,6 +25,7 @@ import {
 import {
   ASSETS,
   positionPnl,
+  roundMoney,
   type AssetSymbol,
   type CycleResult,
   type ModelCycleOutcome,
@@ -48,7 +49,10 @@ export class CycleRunner {
     const open = await this.store.getOpenPositions();
     const pnlByModel = new Map<string, number>();
     for (const pos of open) {
-      const exitPrice = snapshot.assets[pos.asset]?.price ?? pos.entryPrice;
+      // A missing/zero price means "no fresh data" — book 0, never a phantom
+      // -100% (which `?? entryPrice` would NOT catch, since 0 is a valid number).
+      const live = snapshot.assets[pos.asset]?.price;
+      const exitPrice = live && live > 0 ? live : pos.entryPrice;
       const pnl = positionPnl(pos.side, pos.notional, pos.entryPrice, exitPrice);
       pnlByModel.set(pos.modelId, (pnlByModel.get(pos.modelId) ?? 0) + pnl);
     }
@@ -58,25 +62,32 @@ export class CycleRunner {
     const newOpen: Position[] = [];
 
     const modelRuns = await Promise.all(models.map(async (model) => {
-      // Apply realized PnL to the model's pool balance.
-      const pnl = pnlByModel.get(model.id) ?? 0;
-      const balanceAfter = Math.max(0, model.balance + pnl);
-      await this.store.updateModelPool(model.id, balanceAfter, model.totalShares);
+      // Apply realized PnL atomically (relative increment), rounded to cents,
+      // so a concurrent stake mid-cycle isn't clobbered.
+      const pnl = roundMoney(pnlByModel.get(model.id) ?? 0);
+      // Capture balanceAfter BEFORE mutating (an in-memory store hands back the
+      // live object, so adjust would otherwise double-count when we re-read).
+      const balanceAfter = roundMoney(model.balance + pnl);
+      if (pnl !== 0) await this.store.adjustModelPool(model.id, pnl, 0);
 
-      // 2) Ask the model for its next decision.
-      const adapter = getAdapter(this.registry, model.provider);
-      const decision = await adapter
-        .decide({ config: model, snapshot })
-        .catch((err) =>
-          parseDecision(
-            `Adapter ${adapter.provider} failed: ${(err as Error).message}`,
-            model.id,
-            snapshot.cycle,
-          ),
+      // 2) Ask the model for its next decision (one bad model can't sink the cycle).
+      let decision;
+      try {
+        const adapter = getAdapter(this.registry, model.provider);
+        decision = await adapter.decide({ config: model, snapshot });
+      } catch (err) {
+        decision = parseDecision(
+          `Adapter ${model.provider} failed: ${(err as Error).message}`,
+          model.id,
+          snapshot.cycle,
         );
+      }
 
       // 3) Open new positions: split balance equally across non-FLAT picks.
-      const live = decision.decisions.filter((d) => d.side !== "FLAT");
+      // Only open against a real (>0) price; skip assets with no fresh data.
+      const live = decision.decisions.filter(
+        (d) => d.side !== "FLAT" && (snapshot.assets[d.asset]?.price ?? 0) > 0,
+      );
       const perNotional = live.length > 0 ? balanceAfter / live.length : 0;
       const positions: Position[] = [];
       for (const d of live) {

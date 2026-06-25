@@ -121,7 +121,8 @@ export function buildRoutes({ store, staking, lastCycle, history, market }: Rout
     if (!userId) return res.status(400).json({ error: "userId required" });
     let shares: number | undefined;
     if (req.body?.shares !== undefined) {
-      const parsed = positiveAmount(req.body.shares);
+      // Shares are quantities, not dollars — don't cap at the money limit.
+      const parsed = positiveAmount(req.body.shares, Number.MAX_SAFE_INTEGER);
       if (parsed === null) return res.status(400).json({ error: "invalid shares" });
       shares = parsed;
     }
@@ -134,8 +135,12 @@ export function buildRoutes({ store, staking, lastCycle, history, market }: Rout
   });
 
   r.get("/models/:id/stake/:userId", async (req, res) => {
-    const value = await staking.positionValue(req.params.userId, req.params.id);
-    res.json(value);
+    try {
+      const value = await staking.positionValue(req.params.userId, req.params.id);
+      res.json(value);
+    } catch (e) {
+      res.status(400).json({ error: (e as Error).message });
+    }
   });
 
   // --- Cycle / market ---
@@ -147,7 +152,8 @@ export function buildRoutes({ store, staking, lastCycle, history, market }: Rout
 
   // Model equity timeseries (aggregate index + per-model + cycle PnL charts).
   r.get("/history", async (req, res) => {
-    const points = Math.max(2, Math.min(500, Number(req.query.points ?? 48)));
+    const raw = Number(req.query.points ?? 48);
+    const points = Number.isFinite(raw) ? Math.max(2, Math.min(500, raw)) : 48;
     const models = (await store.listModels()).map((m) => ({
       id: m.id,
       name: m.name,

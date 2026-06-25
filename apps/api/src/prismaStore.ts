@@ -88,6 +88,17 @@ export class PrismaStore implements Store {
     await this.prisma.model.update({ where: { id }, data: { balance, totalShares } });
   }
 
+  async adjustModelPool(id: string, balanceDelta: number, sharesDelta: number): Promise<void> {
+    await this.prisma.model.update({
+      where: { id },
+      // Atomic at the DB — concurrent stakes/cycle PnL compose without clobbering.
+      data: {
+        balance: { increment: balanceDelta },
+        totalShares: { increment: sharesDelta },
+      },
+    });
+  }
+
   async getUser(id: string): Promise<User | undefined> {
     const u = await this.prisma.user.findUnique({ where: { id } });
     return u ? { id: u.id, handle: u.handle, balance: u.balance } : undefined;
@@ -111,6 +122,13 @@ export class PrismaStore implements Store {
 
   async updateUserBalance(id: string, balance: number): Promise<void> {
     await this.prisma.user.update({ where: { id }, data: { balance } });
+  }
+
+  async adjustUserBalance(id: string, delta: number): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { balance: { increment: delta } },
+    });
   }
 
   async listStakes(filter: { userId?: string; modelId?: string }): Promise<Stake[]> {

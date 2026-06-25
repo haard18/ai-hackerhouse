@@ -32,9 +32,16 @@ export class CycleHistory {
   /** Restore recent history from Postgres (no-op without a DB). */
   async load(maxCycles = 500): Promise<void> {
     if (!this.prisma) return;
-    const rows = await this.prisma.equityPoint.findMany({
+    // Fetch by cycle range (not a row count) so we never truncate mid-cycle and
+    // under-count a cycle's TVL — works for any number of models.
+    const top = await this.prisma.equityPoint.findFirst({
       orderBy: { cycle: "desc" },
-      take: maxCycles * 8, // a few models per cycle
+      select: { cycle: true },
+    });
+    if (!top) return;
+    const rows = await this.prisma.equityPoint.findMany({
+      where: { cycle: { gt: top.cycle - maxCycles } },
+      orderBy: { cycle: "asc" },
     });
     const byCycle = new Map<number, HistoryPoint>();
     for (const r of rows) {
