@@ -18,6 +18,7 @@ export interface Store {
   updateModelPool(id: string, balance: number, totalShares: number): Promise<void>;
 
   getUser(id: string): Promise<User | undefined>;
+  getUserByHandle(handle: string): Promise<User | undefined>;
   upsertUser(user: User): Promise<User>;
   updateUserBalance(id: string, balance: number): Promise<void>;
 

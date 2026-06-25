@@ -60,6 +60,8 @@ model Stake {
   contributed Float
   createdAt   DateTime @default(now())
 
+  // One stake row per (user, model) — staking merges into it.
+  @@unique([userId, modelId])
   @@index([userId])
   @@index([modelId])
 }
@@ -92,6 +94,20 @@ model Position {
   pnl        Float
 
   @@index([modelId, cycle])
+}
+
+// Positions currently open, carried into the next cycle for PnL resolution.
+// Replaced wholesale each cycle; survives restarts so the engine resumes.
+model OpenPosition {
+  id         String @id @default(cuid())
+  modelId    String
+  cycle      Int
+  asset      String
+  side       Side
+  notional   Float
+  entryPrice Float
+
+  @@index([modelId])
 }
 
 // Persisted market data: one row per closed 5m candle per asset. This is the
