@@ -90,7 +90,6 @@ async function main() {
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
 
-  // Run cycle 0 immediately so the dashboard has data, then every 5 min.
   void scheduler.tick();
   scheduler.start();
 }

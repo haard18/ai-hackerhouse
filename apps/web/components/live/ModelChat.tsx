@@ -28,14 +28,7 @@ export function ModelChat({ cycle, models, filterModelId }: ModelChatProps) {
   );
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <span>ModelChat</span>
-        <span style={{ fontWeight: 400, opacity: 0.6 }}>
-          {filterModelId ? nameById[filterModelId] ?? "Filtered" : "All Models"}
-        </span>
-      </div>
-      <div className="chat-feed">
+    <div className="chat-feed">
         {entries.length === 0 && (
           <div className="chat-item">
             <p className="chat-body" style={{ margin: 0 }}>
@@ -53,9 +46,7 @@ export function ModelChat({ cycle, models, filterModelId }: ModelChatProps) {
             <div key={`${p.modelId}-${cycle?.cycle}`} className="chat-item">
               <div className="chat-meta">
                 <span>
-                  <span className="chat-model" style={{ color: visual.chatColor }}>
-                    {visual.icon} {name.toUpperCase()}
-                  </span>
+                  <span className="chat-model">{name.toUpperCase()}</span>
                   <span className="chat-tag">{visual.tag}</span>
                 </span>
                 <span className="chat-time">
@@ -73,7 +64,6 @@ export function ModelChat({ cycle, models, filterModelId }: ModelChatProps) {
             </div>
           );
         })}
-      </div>
     </div>
   );
 }
