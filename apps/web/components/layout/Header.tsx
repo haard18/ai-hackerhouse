@@ -16,7 +16,7 @@ export function Header({ activeNav }: HeaderProps) {
     <header className="site-header">
       <div className="site-header-inner">
         <Link href="/" className="site-logo">
-          AI Trading Arena<span>by hackerhouse</span>
+          Botoseum<span>by hackerhouse</span>
         </Link>
         <nav className="site-nav">
           {NAV.map(({ key, href, label }) => (
