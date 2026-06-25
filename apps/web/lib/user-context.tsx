@@ -43,9 +43,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const signup = useCallback(async (handle: string) => {
     setError(null);
-    const u = await api.createUser(handle);
-    localStorage.setItem(STORAGE_KEY, u.id);
-    setUser(u);
+    try {
+      const u = await api.createUser(handle);
+      localStorage.setItem(STORAGE_KEY, u.id);
+      setUser(u);
+    } catch (e) {
+      // Surface "username already taken", validation errors, etc. to the UI.
+      setError((e as Error).message);
+      throw e;
+    }
   }, []);
 
   return (

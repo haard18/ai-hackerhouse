@@ -16,7 +16,7 @@ export function ModelBattle({ models, cycle }: ModelBattleProps) {
   const b = sorted[1];
   if (!a || !b) return null;
 
-  const maxBal = Math.max(a.balance, b.balance);
+  const maxBal = Math.max(a.balance, b.balance, 1); // avoid 0/0 → NaN width
   const pnlA = cycle?.perModel.find((p) => p.modelId === a.id)?.pnl ?? 0;
   const pnlB = cycle?.perModel.find((p) => p.modelId === b.id)?.pnl ?? 0;
 

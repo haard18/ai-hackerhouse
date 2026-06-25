@@ -89,6 +89,8 @@ export class BinanceKlineStream {
   }
 
   start(): void {
+    // Guard against double-start / start-during-reconnect leaking a socket.
+    if (this.ws || this.reconnectTimer) return;
     this.stopped = false;
     this.connect();
   }
@@ -114,11 +116,13 @@ export class BinanceKlineStream {
     this.ws = ws;
 
     ws.addEventListener("open", () => {
-      this.backoffMs = 1_000; // reset backoff on a healthy connection
       console.log(`[stream] connected: ${ASSETS.join(",")} ${CANDLE_INTERVAL}`);
     });
 
     ws.addEventListener("message", (ev: MessageEvent) => {
+      // Reset backoff only once real data flows — a socket that opens then
+      // immediately drops (flapping) keeps backing off instead of hammering.
+      this.backoffMs = 1_000;
       this.handleMessage(typeof ev.data === "string" ? ev.data : String(ev.data));
     });
 
@@ -133,11 +137,15 @@ export class BinanceKlineStream {
   }
 
   private scheduleReconnect(): void {
-    if (this.stopped) return;
-    const delay = this.backoffMs;
+    if (this.stopped || this.reconnectTimer) return;
+    // Add jitter so 5 streams don't all reconnect in lockstep.
+    const delay = this.backoffMs + Math.floor(Math.random() * 1_000);
     this.backoffMs = Math.min(this.backoffMs * 2, this.maxBackoffMs);
     console.warn(`[stream] disconnected — reconnecting in ${delay}ms`);
-    this.reconnectTimer = setTimeout(() => this.connect(), delay);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
   }
 
   private handleMessage(raw: string): void {

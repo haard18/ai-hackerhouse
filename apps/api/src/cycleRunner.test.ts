@@ -89,6 +89,14 @@ class TestStore implements Store {
     }
   }
 
+  async adjustModelPool(id: string, balanceDelta: number, sharesDelta: number): Promise<void> {
+    const model = this.models.find((m) => m.id === id);
+    if (model) {
+      model.balance += balanceDelta;
+      model.totalShares += sharesDelta;
+    }
+  }
+
   async getOpenPositions(): Promise<Position[]> {
     return this.positions;
   }
@@ -110,6 +118,8 @@ class TestStore implements Store {
   }
 
   async updateUserBalance(): Promise<void> {}
+
+  async adjustUserBalance(): Promise<void> {}
 
   async listStakes(): Promise<Stake[]> {
     return [];

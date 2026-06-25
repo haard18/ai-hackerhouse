@@ -43,6 +43,13 @@ export class InMemoryStore implements Store {
       m.totalShares = totalShares;
     }
   }
+  async adjustModelPool(id: string, balanceDelta: number, sharesDelta: number) {
+    const m = this.models.get(id);
+    if (m) {
+      m.balance += balanceDelta;
+      m.totalShares += sharesDelta;
+    }
+  }
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -58,6 +65,10 @@ export class InMemoryStore implements Store {
   async updateUserBalance(id: string, balance: number) {
     const u = this.users.get(id);
     if (u) u.balance = balance;
+  }
+  async adjustUserBalance(id: string, delta: number) {
+    const u = this.users.get(id);
+    if (u) u.balance += delta;
   }
 
   async listStakes(filter: { userId?: string; modelId?: string }): Promise<Stake[]> {
