@@ -1,0 +1,28 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+
+# env / secrets — NEVER commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# prisma
+packages/**/generated/
+apps/**/generated/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+coverage/

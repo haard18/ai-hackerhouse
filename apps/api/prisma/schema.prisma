@@ -1,0 +1,102 @@
+// Prisma schema for the AI trading competition platform.
+// Run `pnpm db:generate` then `pnpm db:push` after editing.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Provider {
+  anthropic
+  openai
+  google
+  mock
+}
+
+enum Side {
+  LONG
+  SHORT
+  FLAT
+}
+
+model User {
+  id        String   @id @default(cuid())
+  handle    String   @unique
+  // Free paper balance not staked into any model. Seeded with SIGNUP_BONUS.
+  balance   Float    @default(50)
+  stakes    Stake[]
+  createdAt DateTime @default(now())
+}
+
+model Model {
+  id           String     @id @default(cuid())
+  name         String     @unique
+  provider     Provider
+  modelId      String // provider model id, e.g. "claude-opus-4-8"
+  systemPrompt String
+  // The model's own paper balance (starts at STARTING_BALANCE = 10000).
+  balance      Float      @default(10000)
+  // Total pool shares minted to stakers (LP-token accounting).
+  totalShares  Float      @default(0)
+  active       Boolean    @default(true)
+  stakes       Stake[]
+  positions    Position[]
+  decisions    Decision[]
+  createdAt    DateTime   @default(now())
+}
+
+model Stake {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  model       Model    @relation(fields: [modelId], references: [id])
+  modelId     String
+  shares      Float
+  contributed Float
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([modelId])
+}
+
+// A model's snapshot decision for one asset in one cycle.
+model Decision {
+  id         String  @id @default(cuid())
+  model      Model   @relation(fields: [modelId], references: [id])
+  modelId    String
+  cycle      Int
+  asset      String
+  side       Side
+  confidence Float
+  rationale  String?
+
+  @@index([modelId, cycle])
+}
+
+// A resolved position (one asset, one cycle) with realized paper PnL.
+model Position {
+  id         String @id @default(cuid())
+  model      Model  @relation(fields: [modelId], references: [id])
+  modelId    String
+  cycle      Int
+  asset      String
+  side       Side
+  notional   Float
+  entryPrice Float
+  exitPrice  Float
+  pnl        Float
+
+  @@index([modelId, cycle])
+}
+
+// One row per completed cycle, for charting / audit.
+model CycleLog {
+  id        String   @id @default(cuid())
+  cycle     Int      @unique
+  timestamp DateTime
+  createdAt DateTime @default(now())
+}
