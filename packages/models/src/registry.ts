@@ -9,6 +9,7 @@ import { MockModelAdapter } from "./providers/mock.js";
 import { AnthropicModelAdapter } from "./providers/anthropic.js";
 import { OpenAIModelAdapter } from "./providers/openai.js";
 import { GoogleModelAdapter } from "./providers/google.js";
+import { OpenRouterModelAdapter } from "./providers/openrouter.js";
 
 export function createAdapterRegistry(): Record<ModelProvider, ModelAdapter> {
   return {
@@ -16,6 +17,7 @@ export function createAdapterRegistry(): Record<ModelProvider, ModelAdapter> {
     anthropic: new AnthropicModelAdapter(),
     openai: new OpenAIModelAdapter(),
     google: new GoogleModelAdapter(),
+    openrouter: new OpenRouterModelAdapter(),
   };
 }
 

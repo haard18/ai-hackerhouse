@@ -14,7 +14,7 @@ export function createMarketDataSource(
 ): MarketDataSource {
   switch (kind) {
     case "binance":
-      return new BinanceMarketDataSource();
+      return new BinanceMarketDataSource(process.env.BINANCE_API_BASE);
     case "stub":
     default:
       return new StubMarketDataSource();

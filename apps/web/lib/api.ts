@@ -14,6 +14,32 @@ export interface LeaderboardEntry {
   active: boolean;
 }
 
+export interface AssetDecision {
+  asset: string;
+  side: "LONG" | "SHORT" | "FLAT";
+  confidence: number;
+  rationale?: string;
+}
+
+export interface CycleOutcome {
+  modelId: string;
+  decision: {
+    modelId: string;
+    cycle: number;
+    decisions: AssetDecision[];
+    raw?: string;
+  };
+  pnl: number;
+  balanceAfter: number;
+}
+
+export interface LatestCycle {
+  cycle: number;
+  timestamp: number;
+  snapshotRef: number;
+  perModel: CycleOutcome[];
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}/api${path}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`API ${path} -> ${res.status}`);
@@ -22,5 +48,5 @@ async function get<T>(path: string): Promise<T> {
 
 export const api = {
   leaderboard: () => get<LeaderboardEntry[]>("/models"),
-  latestCycle: () => get<unknown>("/cycle/latest"),
+  latestCycle: () => get<LatestCycle>("/cycle/latest"),
 };

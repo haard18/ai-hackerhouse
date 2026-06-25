@@ -23,6 +23,7 @@ export async function buildSnapshot(
   opts: SnapshotOptions = {},
 ): Promise<MarketSnapshot> {
   const candleWindow = opts.candleWindow ?? 24;
+  setSourceCycle(source, cycle);
 
   const entries = await Promise.all(
     ASSETS.map(
@@ -39,4 +40,20 @@ export async function buildSnapshot(
   >;
 
   return { timestamp, cycle, assets };
+}
+
+interface CycleAwareSource {
+  setCycle(cycle: number): void;
+}
+
+function setSourceCycle(
+  source: MarketDataSource,
+  cycle: number,
+): void {
+  if (
+    "setCycle" in source &&
+    typeof (source as CycleAwareSource).setCycle === "function"
+  ) {
+    (source as CycleAwareSource).setCycle(cycle);
+  }
 }

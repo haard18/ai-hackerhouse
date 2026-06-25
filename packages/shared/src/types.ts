@@ -10,7 +10,12 @@ export type AssetSymbol = "BTC" | "ETH" | "SOL" | "BNB" | "XRP";
 export type PositionSide = "LONG" | "SHORT" | "FLAT";
 
 /** Supported model providers. Extend as Yug adds adapters. */
-export type ModelProvider = "anthropic" | "openai" | "google" | "mock";
+export type ModelProvider =
+  | "anthropic"
+  | "openai"
+  | "google"
+  | "openrouter"
+  | "mock";
 
 // ─────────────────────────── Market data ───────────────────────────
 

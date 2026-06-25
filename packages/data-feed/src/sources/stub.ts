@@ -70,7 +70,7 @@ export class StubMarketDataSource implements MarketDataSource {
   }
 
   async getCandles(asset: AssetSymbol, limit: number): Promise<Candle[]> {
-    const start = Math.max(0, this.cycle - limit + 1);
+    const start = this.cycle - limit + 1;
     const out: Candle[] = [];
     for (let c = start; c <= this.cycle; c++) out.push(this.candleAt(asset, c));
     return out;
