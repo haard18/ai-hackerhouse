@@ -17,7 +17,27 @@ interface IndexChartProps {
 }
 
 export function IndexChart({ data }: IndexChartProps) {
-  if (!data.length) return null;
+  // A line needs at least two points; show a friendly placeholder until the
+  // equity timeseries accumulates a few cycles.
+  if (data.length < 2) {
+    return (
+      <div
+        className="empty-state"
+        style={{
+          height: 220,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          opacity: 0.6,
+          fontFamily: "monospace",
+          fontSize: 12,
+        }}
+      >
+        Index builds as cycles resolve — first line appears after cycle&nbsp;#1.
+      </div>
+    );
+  }
 
   return (
     <div className="chart-wrap" style={{ height: 220 }}>

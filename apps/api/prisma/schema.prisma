@@ -112,6 +112,20 @@ model Candle {
   @@index([asset, openTime])
 }
 
+// Model equity curve: one row per (cycle, model) — the timeseries that powers
+// the aggregate index, per-model balance, and cycle-PnL charts.
+model EquityPoint {
+  id        String   @id @default(cuid())
+  cycle     Int
+  modelId   String
+  balance   Float
+  pnl       Float
+  timestamp DateTime
+
+  @@unique([cycle, modelId])
+  @@index([modelId, cycle])
+}
+
 // One row per completed cycle, for charting / audit.
 model CycleLog {
   id        String   @id @default(cuid())

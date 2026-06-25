@@ -23,7 +23,9 @@ import {
   parseDecision,
 } from "@ai-trading/models";
 import {
+  ASSETS,
   positionPnl,
+  type AssetSymbol,
   type CycleResult,
   type ModelCycleOutcome,
   type Position,
@@ -101,11 +103,16 @@ export class CycleRunner {
 
     await this.store.setOpenPositions(newOpen);
 
+    const prices = Object.fromEntries(
+      ASSETS.map((a) => [a, snapshot.assets[a]?.price ?? 0]),
+    ) as Record<AssetSymbol, number>;
+
     return {
       cycle,
       timestamp,
       snapshotRef: snapshot.timestamp,
       perModel,
+      prices,
     };
   }
 }
