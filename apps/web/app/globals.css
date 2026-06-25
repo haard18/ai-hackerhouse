@@ -639,3 +639,107 @@ code, .mono { font-family: var(--mono); font-size: 0.92em; }
 }
 
 .chart-wrap { width: 100%; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Responsive / mobile
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Re-show the nav as a horizontally-scrollable row (overrides the hide at
+   1100px above) so phones/tablets can still reach every page. */
+@media (max-width: 1100px) {
+  .site-header-inner { flex-wrap: wrap; row-gap: 10px; }
+  .site-nav {
+    display: flex;
+    order: 3;
+    width: 100%;
+    gap: 22px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .site-nav::-webkit-scrollbar { display: none; }
+}
+
+/* Phones */
+@media (max-width: 760px) {
+  body { font-size: 14px; }
+  .shell-main { padding: 0 14px 40px; }
+
+  .site-header-inner { padding: 12px 14px; gap: 10px 16px; }
+  .site-logo { font-size: 18px; }
+  .site-logo span { display: none; }
+  .site-cta { margin-left: auto; font-size: 10px; }
+
+  /* Tabs + ticker stack vertically; each scrolls on its own. */
+  .tab-ticker-bar { flex-direction: column; }
+  .model-tabs {
+    width: 100%;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .model-tabs::-webkit-scrollbar { display: none; }
+  .ticker-scroll { width: 100%; }
+  .ticker-item { padding: 9px 14px; }
+
+  /* Hero */
+  .arena-hero { margin: 18px 0 16px; padding-top: 18px; }
+  .arena-hero-top { gap: 14px; padding-bottom: 18px; }
+  .arena-hero-top > div:last-child {
+    flex-direction: row !important;
+    align-items: center !important;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .arena-title { font-size: clamp(22px, 7vw, 28px); }
+  .arena-sub { font-size: 12px; }
+  .hero-stat { padding: 13px 14px; }
+  .hero-stat-value { font-size: 17px; }
+
+  /* Cards a touch tighter */
+  .card-body { padding: 12px; }
+  .card-header { padding: 10px 12px; }
+
+  /* Asset strip: 3 across instead of 5 */
+  .asset-strip { grid-template-columns: repeat(3, 1fr); }
+  .asset-chip { padding: 10px; }
+  .asset-chip-price { font-size: 14px; }
+
+  /* Battle */
+  .battle-card { padding: 12px; }
+  .battle-name { font-size: 14px; }
+  .battle-balance { font-size: 18px; }
+
+  /* Position matrix: shrink label + guarantee min cell width */
+  .heatmap-grid { overflow-x: auto; }
+  .heatmap-header,
+  .heatmap-row { grid-template-columns: 52px repeat(5, minmax(38px, 1fr)); }
+  .heatmap-cell { padding: 8px 2px; font-size: 9px; }
+  .heatmap-label { font-size: 9px; }
+
+  /* Tables */
+  .data-table { font-size: 12px; }
+  .data-table th,
+  .data-table td { padding: 8px; }
+
+  /* Secondary pages */
+  .live-grid { grid-template-columns: 1fr; }
+  .page-title { font-size: 24px; margin: 20px 0 6px; }
+  .page-subtitle { font-size: 13px; margin-bottom: 20px; }
+  .model-card { padding: 16px; }
+  .model-card-balance { font-size: 22px; }
+  .chat-feed { max-height: 340px; }
+  .form-row { flex-wrap: wrap; }
+}
+
+/* Small phones */
+@media (max-width: 430px) {
+  .asset-strip { grid-template-columns: repeat(2, 1fr); }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .model-battle { grid-template-columns: 1fr; }
+  .battle-vs { justify-content: center; padding: 6px 0; }
+  .site-cta { font-size: 9px; }
+  .arena-title { font-size: clamp(20px, 8vw, 26px); }
+}
