@@ -54,8 +54,7 @@ export class OpenRouterModelAdapter implements ModelAdapter {
           ],
           temperature: 0.2,
           max_tokens: 1_500,
-          reasoning: { effort: "none", exclude: true },
-          reasoning_effort: "none",
+          reasoning: { exclude: true },
           response_format: { type: "json_object" },
         }),
       });

@@ -9,7 +9,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test",
+    "test": "pnpm build && node --test 'dist/**/*.test.js'",
     "lint": "echo \"(stub) lint api\"",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
