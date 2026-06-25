@@ -1,4 +1,11 @@
 import type { ReactNode } from "react";
+import { DM_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { UserProvider } from "../lib/user-context";
+import "./globals.css";
+
+const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
+const serif = Instrument_Serif({ weight: "400", subsets: ["latin"], variable: "--font-serif" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata = {
   title: "AI Trading Arena",
@@ -7,16 +14,9 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        style={{
-          margin: 0,
-          fontFamily: "ui-sans-serif, system-ui, sans-serif",
-          background: "#0b0e14",
-          color: "#e6e6e6",
-        }}
-      >
-        {children}
+    <html lang="en" className={`${sans.variable} ${serif.variable} ${mono.variable}`}>
+      <body>
+        <UserProvider>{children}</UserProvider>
       </body>
     </html>
   );
