@@ -20,6 +20,7 @@ import {
 import {
   createAdapterRegistry,
   getAdapter,
+  parseDecision,
 } from "@ai-trading/models";
 import {
   positionPnl,
@@ -54,7 +55,7 @@ export class CycleRunner {
     const perModel: ModelCycleOutcome[] = [];
     const newOpen: Position[] = [];
 
-    for (const model of models) {
+    const modelRuns = await Promise.all(models.map(async (model) => {
       // Apply realized PnL to the model's pool balance.
       const pnl = pnlByModel.get(model.id) ?? 0;
       const balanceAfter = Math.max(0, model.balance + pnl);
@@ -62,13 +63,22 @@ export class CycleRunner {
 
       // 2) Ask the model for its next decision.
       const adapter = getAdapter(this.registry, model.provider);
-      const decision = await adapter.decide({ config: model, snapshot });
+      const decision = await adapter
+        .decide({ config: model, snapshot })
+        .catch((err) =>
+          parseDecision(
+            `Adapter ${adapter.provider} failed: ${(err as Error).message}`,
+            model.id,
+            snapshot.cycle,
+          ),
+        );
 
       // 3) Open new positions: split balance equally across non-FLAT picks.
       const live = decision.decisions.filter((d) => d.side !== "FLAT");
       const perNotional = live.length > 0 ? balanceAfter / live.length : 0;
+      const positions: Position[] = [];
       for (const d of live) {
-        newOpen.push({
+        positions.push({
           modelId: model.id,
           asset: d.asset,
           side: d.side,
@@ -78,7 +88,15 @@ export class CycleRunner {
         });
       }
 
-      perModel.push({ modelId: model.id, decision, pnl, balanceAfter });
+      return {
+        outcome: { modelId: model.id, decision, pnl, balanceAfter },
+        positions,
+      };
+    }));
+
+    for (const run of modelRuns) {
+      perModel.push(run.outcome);
+      newOpen.push(...run.positions);
     }
 
     await this.store.setOpenPositions(newOpen);

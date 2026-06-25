@@ -4,7 +4,10 @@
  * models + stub market data) with no credentials or database.
  */
 
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import cors from "cors";
+import { config as loadEnv } from "dotenv";
 import express from "express";
 import { CycleScheduler, createMarketDataSource } from "@ai-trading/data-feed";
 import type { CycleResult } from "@ai-trading/shared";
@@ -12,6 +15,13 @@ import { CycleRunner } from "./cycleRunner.js";
 import { InMemoryStore } from "./memoryStore.js";
 import { buildRoutes } from "./routes.js";
 import { StakingService } from "./staking.js";
+
+for (const path of [
+  resolve(process.cwd(), ".env"),
+  resolve(process.cwd(), "../../.env"),
+].filter(existsSync)) {
+  loadEnv({ path });
+}
 
 const PORT = Number(process.env.API_PORT ?? 4000);
 
@@ -37,19 +47,26 @@ async function main() {
     }
   });
 
-  // Run cycle 0 immediately so the dashboard has data, then every 5 min.
-  await scheduler.tick();
-  scheduler.start();
-
   const app = express();
   app.use(cors());
   app.use(express.json());
   app.use("/api", buildRoutes({ store, staking, lastCycle: () => lastCycle }));
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`API listening on http://localhost:${PORT}`);
     console.log(`Market data source: ${source.name}`);
   });
+
+  const shutdown = () => {
+    scheduler.stop();
+    server.close(() => process.exit(0));
+  };
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+
+  // Run cycle 0 immediately so the dashboard has data, then every 5 min.
+  void scheduler.tick();
+  scheduler.start();
 }
 
 main().catch((err) => {

@@ -1,15 +1,21 @@
-import { api, type LeaderboardEntry } from "../lib/api";
+import { api, type LatestCycle, type LeaderboardEntry } from "../lib/api";
 
 // Server component: fetches the leaderboard. Falls back gracefully if the API
 // isn't running yet so Aashwin can build UI without the backend up.
 export default async function Home() {
   let board: LeaderboardEntry[] = [];
+  let latest: LatestCycle | null = null;
   let error: string | null = null;
   try {
-    board = await api.leaderboard();
+    [board, latest] = await Promise.all([
+      api.leaderboard(),
+      api.latestCycle().catch(() => null),
+    ]);
   } catch (e) {
     error = (e as Error).message;
   }
+
+  const modelName = new Map(board.map((m) => [m.id, m.name]));
 
   return (
     <main style={{ maxWidth: 760, margin: "0 auto", padding: "48px 20px" }}>
@@ -55,6 +61,58 @@ export default async function Home() {
           )}
         </tbody>
       </table>
+
+      <h2 style={{ marginTop: 36 }}>Latest Cycle</h2>
+      {!latest && !error && (
+        <p style={{ opacity: 0.65 }}>Waiting for the first cycle to finish.</p>
+      )}
+      {latest && (
+        <section>
+          <p style={{ opacity: 0.65, marginTop: 0 }}>
+            Cycle {latest.cycle} · {new Date(latest.timestamp).toLocaleString()}
+          </p>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ textAlign: "left", opacity: 0.6 }}>
+                <th style={{ padding: "8px 4px" }}>Model</th>
+                <th>Decisions</th>
+                <th style={{ textAlign: "right" }}>PnL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {latest.perModel.map((m) => (
+                <tr key={m.modelId} style={{ borderTop: "1px solid #1c2230" }}>
+                  <td style={{ padding: "10px 4px", whiteSpace: "nowrap" }}>
+                    {modelName.get(m.modelId) ?? m.modelId}
+                  </td>
+                  <td>
+                    {m.decision.decisions.map((d) => (
+                      <span
+                        key={`${m.modelId}-${d.asset}`}
+                        style={{
+                          display: "inline-block",
+                          marginRight: 8,
+                          color:
+                            d.side === "LONG"
+                              ? "#3fb950"
+                              : d.side === "SHORT"
+                                ? "#f85149"
+                                : "#8b949e",
+                        }}
+                      >
+                        {d.asset}:{d.side} {Math.round(d.confidence * 100)}%
+                      </span>
+                    ))}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    ${m.pnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
     </main>
   );
 }

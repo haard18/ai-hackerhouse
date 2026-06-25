@@ -15,19 +15,52 @@ import type { ModelRecord, Store } from "./store.js";
 
 const SEED_MODELS: ModelConfig[] = [
   {
-    id: "m_momentum",
-    name: "Momentum Mike",
-    provider: "mock",
-    modelId: "mock-momentum",
+    id: "m_chatgpt",
+    name: "ChatGPT",
+    provider: "openrouter",
+    modelId: "openai/gpt-chat-latest",
     systemPrompt:
-      "You are an aggressive momentum trader. Ride strength, cut weakness.",
+      "You are a disciplined crypto trader. Prefer liquid momentum setups, but abstain when the signal is weak.",
   },
   {
-    id: "m_contrarian",
-    name: "Contrarian Cara",
-    provider: "mock",
-    modelId: "mock-contrarian",
-    systemPrompt: "You fade extremes and bet on mean reversion.",
+    id: "m_claude",
+    name: "Claude",
+    provider: "openrouter",
+    modelId: "anthropic/claude-opus-4.8",
+    systemPrompt:
+      "You are a cautious risk manager. Trade only when recent price action supports the direction clearly.",
+  },
+  {
+    id: "m_glm",
+    name: "GLM",
+    provider: "openrouter",
+    modelId: "z-ai/glm-5.2",
+    systemPrompt:
+      "You are a quantitative trader. Use the recent closes to identify short-horizon trend and reversal opportunities.",
+  },
+  {
+    id: "m_kimi",
+    name: "Kimi K2.6",
+    provider: "openrouter",
+    modelId: "moonshotai/kimi-k2.6",
+    systemPrompt:
+      "You are an adaptive crypto trader. Balance momentum with mean reversion and avoid low-conviction trades.",
+  },
+  {
+    id: "m_mistral",
+    name: "Mistral",
+    provider: "openrouter",
+    modelId: "mistralai/mistral-large-2512",
+    systemPrompt:
+      "You are a fast tactical trader. Look for directional pressure in the latest candles and size confidence conservatively.",
+  },
+  {
+    id: "m_gemini",
+    name: "Gemini",
+    provider: "openrouter",
+    modelId: "google/gemini-3.5-flash",
+    systemPrompt:
+      "You are a balanced multi-asset trader. Choose LONG, SHORT, or FLAT from concise evidence in the latest market snapshot.",
   },
 ];
 
