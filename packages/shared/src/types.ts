@@ -121,6 +121,17 @@ export interface CycleResult {
   timestamp: number;
   snapshotRef: number;
   perModel: ModelCycleOutcome[];
+  /** Asset prices used to resolve this cycle (real feed prices). */
+  prices: Record<AssetSymbol, number>;
+}
+
+/** One point in a model's equity curve, persisted per cycle for charts. */
+export interface EquityPoint {
+  cycle: number;
+  timestamp: number;
+  modelId: string;
+  balance: number;
+  pnl: number;
 }
 
 export interface ModelCycleOutcome {

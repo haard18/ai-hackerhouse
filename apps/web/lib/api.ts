@@ -38,6 +38,28 @@ export interface ClaimResult {
   remainingShares: number;
 }
 
+export interface MarketQuote {
+  asset: string;
+  price: number;
+  changePct: number;
+  /** Recent closes (oldest first) for sparklines. */
+  history: number[];
+}
+
+export interface HistoryPoint {
+  cycle: number;
+  label: string;
+  timestamp: number;
+  tvl: number;
+  balances: Record<string, number>;
+  pnl: Record<string, number>;
+}
+
+export interface HistoryResponse {
+  models: { id: string; name: string }[];
+  points: HistoryPoint[];
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}/api${path}`, {
     cache: "no-store",
@@ -70,4 +92,8 @@ export const api = {
     }),
   stakeValue: (modelId: string, userId: string) =>
     request<StakeValue>(`/models/${modelId}/stake/${userId}`),
+  market: () =>
+    request<{ assets: MarketQuote[] }>("/market").then((r) => r.assets),
+  history: (points = 48) =>
+    request<HistoryResponse>(`/history?points=${points}`),
 };

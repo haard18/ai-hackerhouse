@@ -11,8 +11,13 @@ import { ModelChat } from "./ModelChat";
 import { PositionHeatmap } from "./PositionHeatmap";
 import { IndexChart } from "../charts/IndexChart";
 import { ModelPnLChart } from "../charts/ModelPnLChart";
-import { aggregateIndexHistory } from "../../lib/chart-data";
-import { api, type LeaderboardEntry } from "../../lib/api";
+import {
+  api,
+  type LeaderboardEntry,
+  type HistoryResponse,
+  type MarketQuote,
+} from "../../lib/api";
+import { modelColor } from "../../lib/chart-theme";
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return "imminent…";
@@ -34,21 +39,28 @@ export function LiveDashboard({
   const [filterModelId, setFilterModelId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState("—");
+  const [history, setHistory] = useState<HistoryResponse | null>(null);
+  const [market, setMarket] = useState<MarketQuote[]>([]);
 
   useEffect(() => {
     const poll = async () => {
       try {
-        const [m, c] = await Promise.all([
+        const [m, c, h, mk] = await Promise.all([
           api.leaderboard(),
           api.latestCycle().catch(() => null),
+          api.history(48).catch(() => null),
+          api.market().catch(() => []),
         ]);
         setModels(m);
         if (c) setCycle(c);
+        if (h) setHistory(h);
+        if (mk.length) setMarket(mk);
         setError(null);
       } catch (e) {
         setError((e as Error).message);
       }
     };
+    poll();
     const id = setInterval(poll, 15_000);
     return () => clearInterval(id);
   }, []);
@@ -67,7 +79,23 @@ export function LiveDashboard({
     return () => clearInterval(id);
   }, [cycle?.timestamp, cycle?.cycle]);
 
-  const indexData = aggregateIndexHistory(models, cycle?.cycle ?? 0);
+  const indexModels = (history?.models ?? []).map((m, i) => ({
+    ...m,
+    color: modelColor(i),
+  }));
+  // When a model tab is selected, the chart narrows to just that model.
+  const shownModels = filterModelId
+    ? indexModels.filter((m) => m.id === filterModelId)
+    : indexModels;
+  const selectedName = indexModels.find((m) => m.id === filterModelId)?.name;
+  const indexData =
+    history?.points.map((p) => ({
+      cycle: p.cycle,
+      label: p.label,
+      tvl: p.tvl,
+      // Spread each model's balance as its own series for the chart.
+      ...p.balances,
+    })) ?? [];
 
   return (
     <Shell
@@ -87,11 +115,17 @@ export function LiveDashboard({
       <div className="arena-grid">
         <div className="glass-card arena-span-2">
           <div className="card-header">
-            <span>Aggregate Index · TVL</span>
-            <span style={{ opacity: 0.5 }}>24 cycles</span>
+            <span>
+              {selectedName
+                ? `${selectedName} · balance`
+                : "Aggregate Index · per-model balance"}
+            </span>
+            <span style={{ opacity: 0.5 }}>
+              {indexData.length} cycle{indexData.length === 1 ? "" : "s"}
+            </span>
           </div>
           <div className="card-body">
-            <IndexChart data={indexData} />
+            <IndexChart data={indexData} models={shownModels} />
           </div>
         </div>
 
@@ -109,7 +143,7 @@ export function LiveDashboard({
             <span style={{ opacity: 0.5 }}>hover for vol</span>
           </div>
           <div className="card-body">
-            <AssetStrip cycle={cycle?.cycle ?? 0} />
+            <AssetStrip quotes={market} />
           </div>
         </div>
 

@@ -8,15 +8,28 @@ import { Router } from "express";
 import { SIGNUP_BONUS, type CycleResult } from "@ai-trading/shared";
 import type { Store } from "./store.js";
 import type { StakingService } from "./staking.js";
+import type { CycleHistory } from "./history.js";
+
+export interface MarketQuote {
+  asset: string;
+  price: number;
+  changePct: number;
+  /** Recent closes (oldest first) for sparklines. */
+  history: number[];
+}
 
 export interface RouteDeps {
   store: Store;
   staking: StakingService;
   /** Returns the most recent cycle result for dashboards. */
   lastCycle: () => CycleResult | null;
+  /** Model equity timeseries for charts. */
+  history: CycleHistory;
+  /** Live asset quotes (real feed prices + sparkline history). */
+  market: () => Promise<MarketQuote[]>;
 }
 
-export function buildRoutes({ store, staking, lastCycle }: RouteDeps): Router {
+export function buildRoutes({ store, staking, lastCycle, history, market }: RouteDeps): Router {
   const r = Router();
 
   r.get("/health", (_req, res) => res.json({ ok: true }));
@@ -102,6 +115,25 @@ export function buildRoutes({ store, staking, lastCycle }: RouteDeps): Router {
     const c = lastCycle();
     if (!c) return res.status(404).json({ error: "no cycle yet" });
     res.json(c);
+  });
+
+  // Model equity timeseries (aggregate index + per-model + cycle PnL charts).
+  r.get("/history", async (req, res) => {
+    const points = Math.max(2, Math.min(500, Number(req.query.points ?? 48)));
+    const models = (await store.listModels()).map((m) => ({
+      id: m.id,
+      name: m.name,
+    }));
+    res.json({ models, points: history.recent(points) });
+  });
+
+  // Live asset quotes with real feed prices + sparkline history.
+  r.get("/market", async (_req, res) => {
+    try {
+      res.json({ assets: await market() });
+    } catch (e) {
+      res.status(503).json({ error: (e as Error).message });
+    }
   });
 
   return r;

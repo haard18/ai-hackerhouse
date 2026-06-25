@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { LeaderboardEntry } from "../../lib/api";
+import type { AssetSymbol } from "@ai-trading/shared";
+import type { LeaderboardEntry, MarketQuote } from "../../lib/api";
 import { api } from "../../lib/api";
 import { formatPrice, formatPct } from "../../lib/format";
-import { quotesForCycle } from "../../lib/market-prices";
 import { modelVisual } from "../../lib/model-meta";
 
 interface TabTickerBarProps {
@@ -13,15 +13,20 @@ interface TabTickerBarProps {
   onModelSelect?: (id: string | null) => void;
 }
 
-export function TabTickerBar({ cycle, selectedModelId, onModelSelect }: TabTickerBarProps) {
+export function TabTickerBar({ selectedModelId, onModelSelect }: TabTickerBarProps) {
   const [models, setModels] = useState<LeaderboardEntry[]>([]);
-  const quotes = quotesForCycle(cycle);
+  const [quotes, setQuotes] = useState<MarketQuote[]>([]);
 
   useEffect(() => {
     api.leaderboard().then(setModels).catch(() => {});
+    const pull = () => api.market().then(setQuotes).catch(() => {});
+    pull();
+    const id = setInterval(pull, 15_000);
+    return () => clearInterval(id);
   }, []);
 
-  const tickerItems = [...quotes, ...quotes];
+  // Duplicate the sequence so the marquee can scroll seamlessly.
+  const tickerItems = quotes.length ? [...quotes, ...quotes] : [];
 
   return (
     <div className="tab-ticker-bar">
@@ -54,7 +59,9 @@ export function TabTickerBar({ cycle, selectedModelId, onModelSelect }: TabTicke
           {tickerItems.map((q, i) => (
             <span key={`${q.asset}-${i}`} className="ticker-item">
               <span className="ticker-symbol">{q.asset}</span>
-              <span className="ticker-price">${formatPrice(q.asset, q.price)}</span>
+              <span className="ticker-price">
+                ${formatPrice(q.asset as AssetSymbol, q.price)}
+              </span>
               <span className={`ticker-change ${q.changePct >= 0 ? "up" : "down"}`}>
                 {formatPct(q.changePct)}
               </span>
