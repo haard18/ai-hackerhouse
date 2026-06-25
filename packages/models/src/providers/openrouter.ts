@@ -53,7 +53,9 @@ export class OpenRouterModelAdapter implements ModelAdapter {
             { role: "user", content: buildUserPrompt(snapshot) },
           ],
           temperature: 0.2,
-          max_tokens: 900,
+          max_tokens: 1_500,
+          reasoning: { effort: "none", exclude: true },
+          reasoning_effort: "none",
           response_format: { type: "json_object" },
         }),
       });

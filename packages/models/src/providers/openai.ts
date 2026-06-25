@@ -38,7 +38,7 @@ export class OpenAIModelAdapter implements ModelAdapter {
       process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
     private readonly timeoutMs = Number(process.env.OPENAI_TIMEOUT_MS ?? 60_000),
     private readonly reasoningEffort = parseReasoningEffort(
-      process.env.OPENAI_REASONING_EFFORT ?? "xhigh",
+      process.env.OPENAI_REASONING_EFFORT ?? "low",
     ),
   ) {}
 
@@ -62,7 +62,7 @@ export class OpenAIModelAdapter implements ModelAdapter {
             { role: "user", content: buildUserPrompt(snapshot) },
           ],
           temperature: 0.2,
-          max_tokens: 900,
+          max_completion_tokens: 900,
           reasoning_effort: this.reasoningEffort,
           response_format: { type: "json_object" },
         }),
@@ -97,7 +97,7 @@ function parseReasoningEffort(value: string): OpenAIReasoningEffort {
   ];
   return allowed.includes(value as OpenAIReasoningEffort)
     ? (value as OpenAIReasoningEffort)
-    : "xhigh";
+    : "low";
 }
 
 function extractContent(content: unknown): string | undefined {
