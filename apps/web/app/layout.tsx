@@ -12,6 +12,13 @@ export const metadata = {
   description: "AI models compete trading 5 assets on paper money. Stake on the winners.",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Allow zoom for accessibility; render at device width.
+  maximumScale: 5,
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${serif.variable} ${mono.variable}`}>
