@@ -17,6 +17,7 @@ import {
   type HistoryResponse,
   type MarketQuote,
 } from "../../lib/api";
+import { modelColor } from "../../lib/chart-theme";
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return "imminent…";
@@ -78,7 +79,15 @@ export function LiveDashboard({
     return () => clearInterval(id);
   }, [cycle?.timestamp, cycle?.cycle]);
 
-  const indexModels = history?.models ?? [];
+  const indexModels = (history?.models ?? []).map((m, i) => ({
+    ...m,
+    color: modelColor(i),
+  }));
+  // When a model tab is selected, the chart narrows to just that model.
+  const shownModels = filterModelId
+    ? indexModels.filter((m) => m.id === filterModelId)
+    : indexModels;
+  const selectedName = indexModels.find((m) => m.id === filterModelId)?.name;
   const indexData =
     history?.points.map((p) => ({
       cycle: p.cycle,
@@ -106,13 +115,17 @@ export function LiveDashboard({
       <div className="arena-grid">
         <div className="glass-card arena-span-2">
           <div className="card-header">
-            <span>Aggregate Index · per-model balance</span>
+            <span>
+              {selectedName
+                ? `${selectedName} · balance`
+                : "Aggregate Index · per-model balance"}
+            </span>
             <span style={{ opacity: 0.5 }}>
               {indexData.length} cycle{indexData.length === 1 ? "" : "s"}
             </span>
           </div>
           <div className="card-body">
-            <IndexChart data={indexData} models={indexModels} />
+            <IndexChart data={indexData} models={shownModels} />
           </div>
         </div>
 

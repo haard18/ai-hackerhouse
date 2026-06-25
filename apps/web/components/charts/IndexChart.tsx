@@ -16,6 +16,8 @@ import { CHART, modelColor } from "../../lib/chart-theme";
 export interface IndexChartModel {
   id: string;
   name: string;
+  /** Stable color so a model keeps its hue even when shown alone. */
+  color?: string;
 }
 
 interface IndexChartProps {
@@ -83,19 +85,22 @@ export function IndexChart({ data, models }: IndexChartProps) {
             wrapperStyle={{ fontFamily: "monospace", fontSize: 10, paddingTop: 6 }}
             iconType="plainline"
           />
-          {models.map((m, i) => (
-            <Line
-              key={m.id}
-              type="monotone"
-              dataKey={m.id}
-              name={m.name}
-              stroke={modelColor(i)}
-              strokeWidth={1.75}
-              dot={false}
-              isAnimationActive={false}
-              activeDot={{ r: 3, fill: modelColor(i), stroke: "#fff", strokeWidth: 1 }}
-            />
-          ))}
+          {models.map((m, i) => {
+            const color = m.color ?? modelColor(i);
+            return (
+              <Line
+                key={m.id}
+                type="monotone"
+                dataKey={m.id}
+                name={m.name}
+                stroke={color}
+                strokeWidth={1.75}
+                dot={false}
+                isAnimationActive={false}
+                activeDot={{ r: 3, fill: color, stroke: "#fff", strokeWidth: 1 }}
+              />
+            );
+          })}
         </LineChart>
       </ResponsiveContainer>
     </div>
