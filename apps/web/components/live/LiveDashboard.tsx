@@ -88,14 +88,33 @@ export function LiveDashboard({
     ? indexModels.filter((m) => m.id === filterModelId)
     : indexModels;
   const selectedName = indexModels.find((m) => m.id === filterModelId)?.name;
-  const indexData =
-    history?.points.map((p) => ({
+
+  // Aggregate view normalizes every model to its starting balance in the
+  // window (indexed % return) so the race is visible on one axis — otherwise
+  // the gap *between* models stretches the axis and each line looks flat.
+  // A single-model tab keeps the real dollar balance (axis auto-zooms to it).
+  const points = history?.points ?? [];
+  const normalized = !filterModelId;
+  const baseByModel: Record<string, number> = {};
+  for (const p of points) {
+    for (const [id, bal] of Object.entries(p.balances)) {
+      if (baseByModel[id] === undefined && Number.isFinite(bal) && bal > 0) {
+        baseByModel[id] = bal;
+      }
+    }
+  }
+  const indexData = points.map((p) => {
+    const row: Record<string, number | string> = {
       cycle: p.cycle,
       label: p.label,
       tvl: p.tvl,
-      // Spread each model's balance as its own series for the chart.
-      ...p.balances,
-    })) ?? [];
+    };
+    for (const [id, bal] of Object.entries(p.balances)) {
+      const base = baseByModel[id];
+      row[id] = normalized && base ? (bal / base - 1) * 100 : bal;
+    }
+    return row;
+  });
 
   return (
     <Shell
@@ -118,14 +137,18 @@ export function LiveDashboard({
             <span>
               {selectedName
                 ? `${selectedName} · balance`
-                : "Aggregate Index · per-model balance"}
+                : "Aggregate Index · return vs window start"}
             </span>
             <span style={{ opacity: 0.5 }}>
               {indexData.length} cycle{indexData.length === 1 ? "" : "s"}
             </span>
           </div>
           <div className="card-body">
-            <IndexChart data={indexData} models={shownModels} />
+            <IndexChart
+              data={indexData}
+              models={shownModels}
+              mode={normalized ? "pct" : "usd"}
+            />
           </div>
         </div>
 
