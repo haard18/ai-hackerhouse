@@ -67,7 +67,7 @@ export const api = {
     request<ClaimResult>(`/models/${modelId}/claim`, {
       method: "POST",
       body: JSON.stringify({ userId, shares }),
-  }),
+    }),
   stakeValue: (modelId: string, userId: string) =>
     request<StakeValue>(`/models/${modelId}/stake/${userId}`),
 };

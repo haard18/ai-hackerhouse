@@ -26,7 +26,7 @@ function hashSeed(asset: AssetSymbol, cycle: number): number {
   return h >>> 0;
 }
 
-function priceAt(asset: AssetSymbol, cycle: number): number {
+export function priceAt(asset: AssetSymbol, cycle: number): number {
   const rand = rng(hashSeed(asset, cycle));
   const base = BASE_PRICE[asset];
   const drift = 1 + Math.sin(cycle / 12) * 0.02;
@@ -50,3 +50,18 @@ export function quotesForCycle(cycle: number): TickerQuote[] {
     return { asset, price, changePct };
   });
 }
+
+export function priceHistory(asset: AssetSymbol, cycle: number, points = 24) {
+  const start = Math.max(0, cycle - points + 1);
+  const out: { cycle: number; price: number }[] = [];
+  for (let c = start; c <= cycle; c++) out.push({ cycle: c, price: priceAt(asset, c) });
+  return out;
+}
+
+export const ASSET_COLORS: Record<AssetSymbol, string> = {
+  BTC: "#f7931a",
+  ETH: "#627eea",
+  SOL: "#9945ff",
+  BNB: "#f3ba2f",
+  XRP: "#23b899",
+};
