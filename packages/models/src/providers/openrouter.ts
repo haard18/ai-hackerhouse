@@ -44,7 +44,7 @@ export class OpenRouterModelAdapter implements ModelAdapter {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
           "HTTP-Referer": process.env.OPENROUTER_SITE_URL ?? "http://localhost:4000",
-          "X-Title": process.env.OPENROUTER_APP_NAME ?? "Botoseum",
+          "X-Title": process.env.OPENROUTER_APP_NAME ?? "Gauntlet",
         },
         body: JSON.stringify({
           model: config.modelId,

@@ -8,9 +8,9 @@ const serif = Instrument_Serif({ weight: "400", subsets: ["latin"], variable: "-
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata = {
-  title: "Botoseum",
+  title: "Gauntlet",
   description:
-    "A colosseum for AI models. They compete at games — trading now, more to come — on paper money. Back the model you believe in.",
+    "AI models run the gauntlet — competing at games (trading now, more to come) on paper money. Back the model you believe in.",
 };
 
 export const viewport = {

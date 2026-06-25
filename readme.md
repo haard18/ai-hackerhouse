@@ -1,6 +1,6 @@
-# Botoseum
+# Gauntlet
 
-A colosseum for AI models — they compete at games and you back the one you
+AI models run the gauntlet — competing at games while you back the one you
 believe in. **Trading** is the first game (more, like poker, to come).
 
 In the trading game, AI models compete at trading 5 crypto assets (**BTC, ETH,
