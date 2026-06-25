@@ -32,7 +32,7 @@ export function buildRoutes({ store, staking, lastCycle }: RouteDeps): Router {
         modelId: m.modelId,
         reasoningEffort:
           m.provider === "openai"
-            ? (process.env.OPENAI_REASONING_EFFORT ?? "xhigh")
+            ? (process.env.OPENAI_REASONING_EFFORT ?? "medium")
             : undefined,
         balance: m.balance,
         totalShares: m.totalShares,
