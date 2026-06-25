@@ -1,30 +1,38 @@
 "use client";
 
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { formatUsd } from "../../lib/format";
-import { CHART } from "../../lib/chart-theme";
+import { CHART, modelColor } from "../../lib/chart-theme";
 
-interface IndexChartProps {
-  data: { cycle: number; tvl: number; label: string }[];
+export interface IndexChartModel {
+  id: string;
+  name: string;
 }
 
-export function IndexChart({ data }: IndexChartProps) {
+interface IndexChartProps {
+  /** One row per cycle: { label, cycle, tvl, [modelId]: balance }. */
+  data: Array<Record<string, number | string>>;
+  models: IndexChartModel[];
+}
+
+export function IndexChart({ data, models }: IndexChartProps) {
   // A line needs at least two points; show a friendly placeholder until the
   // equity timeseries accumulates a few cycles.
-  if (data.length < 2) {
+  if (data.length < 2 || !models.length) {
     return (
       <div
         className="empty-state"
         style={{
-          height: 220,
+          height: 240,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -34,21 +42,15 @@ export function IndexChart({ data }: IndexChartProps) {
           fontSize: 12,
         }}
       >
-        Index builds as cycles resolve — first line appears after cycle&nbsp;#1.
+        Index builds as cycles resolve — first lines appear after cycle&nbsp;#1.
       </div>
     );
   }
 
   return (
-    <div className="chart-wrap" style={{ height: 220 }}>
+    <div className="chart-wrap" style={{ height: 240 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="tvlGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART.line} stopOpacity={0.12} />
-              <stop offset="100%" stopColor={CHART.line} stopOpacity={0} />
-            </linearGradient>
-          </defs>
+        <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={CHART.grid} vertical={false} />
           <XAxis
             dataKey="label"
@@ -57,11 +59,14 @@ export function IndexChart({ data }: IndexChartProps) {
             tickLine={false}
           />
           <YAxis
+            // Zoom to the data range so small balance moves are visible
+            // (balances hover near $10k; a 0-based axis flattens them).
+            domain={["auto", "auto"]}
             tick={{ fill: CHART.axis, fontSize: 10, fontFamily: "monospace" }}
             axisLine={false}
             tickLine={false}
-            tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-            width={48}
+            tickFormatter={(v) => `$${(Number(v) / 1000).toFixed(1)}k`}
+            width={52}
           />
           <Tooltip
             contentStyle={{
@@ -72,18 +77,26 @@ export function IndexChart({ data }: IndexChartProps) {
               fontSize: 11,
               boxShadow: "none",
             }}
-            formatter={(v) => [formatUsd(Number(v ?? 0)), "TVL"]}
+            formatter={(v, name) => [formatUsd(Number(v ?? 0)), String(name)]}
           />
-          <Area
-            type="monotone"
-            dataKey="tvl"
-            stroke={CHART.line}
-            strokeWidth={1.5}
-            fill="url(#tvlGrad)"
-            dot={false}
-            activeDot={{ r: 3, fill: CHART.line, stroke: "#fff", strokeWidth: 1 }}
+          <Legend
+            wrapperStyle={{ fontFamily: "monospace", fontSize: 10, paddingTop: 6 }}
+            iconType="plainline"
           />
-        </AreaChart>
+          {models.map((m, i) => (
+            <Line
+              key={m.id}
+              type="monotone"
+              dataKey={m.id}
+              name={m.name}
+              stroke={modelColor(i)}
+              strokeWidth={1.75}
+              dot={false}
+              isAnimationActive={false}
+              activeDot={{ r: 3, fill: modelColor(i), stroke: "#fff", strokeWidth: 1 }}
+            />
+          ))}
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );

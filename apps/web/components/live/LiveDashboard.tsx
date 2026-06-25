@@ -78,11 +78,14 @@ export function LiveDashboard({
     return () => clearInterval(id);
   }, [cycle?.timestamp, cycle?.cycle]);
 
+  const indexModels = history?.models ?? [];
   const indexData =
     history?.points.map((p) => ({
       cycle: p.cycle,
-      tvl: p.tvl,
       label: p.label,
+      tvl: p.tvl,
+      // Spread each model's balance as its own series for the chart.
+      ...p.balances,
     })) ?? [];
 
   return (
@@ -103,13 +106,13 @@ export function LiveDashboard({
       <div className="arena-grid">
         <div className="glass-card arena-span-2">
           <div className="card-header">
-            <span>Aggregate Index · TVL</span>
+            <span>Aggregate Index · per-model balance</span>
             <span style={{ opacity: 0.5 }}>
               {indexData.length} cycle{indexData.length === 1 ? "" : "s"}
             </span>
           </div>
           <div className="card-body">
-            <IndexChart data={indexData} />
+            <IndexChart data={indexData} models={indexModels} />
           </div>
         </div>
 
