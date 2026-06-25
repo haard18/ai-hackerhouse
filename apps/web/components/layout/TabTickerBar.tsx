@@ -35,13 +35,11 @@ export function TabTickerBar({ cycle, selectedModelId, onModelSelect }: TabTicke
         </button>
         {models.map((m, i) => {
           const v = modelVisual(m.id, m.provider as "mock");
-          const tabColors = ["tab-green", "tab-yellow", "tab-pink", "tab-blue", "tab-purple"];
-          const tabClass = v.tabClass || tabColors[i % tabColors.length];
           return (
             <button
               key={m.id}
               type="button"
-              className={`model-tab ${tabClass} ${selectedModelId === m.id ? "active" : ""}`}
+              className={`model-tab ${v.tabClass} ${selectedModelId === m.id ? "active" : ""}`}
               onClick={() => onModelSelect?.(m.id)}
             >
               {i + 1}: {m.name.split(" ")[0]}

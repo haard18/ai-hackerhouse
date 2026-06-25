@@ -1,8 +1,9 @@
 "use client";
 
-import { ASSETS, type PositionSide } from "@ai-trading/shared";
+import { ASSETS, type ModelProvider, type PositionSide } from "@ai-trading/shared";
 import type { CycleResult } from "@ai-trading/shared";
 import type { LeaderboardEntry } from "../../lib/api";
+import { modelVisual } from "../../lib/model-meta";
 
 interface PositionHeatmapProps {
   models: LeaderboardEntry[];
@@ -16,7 +17,7 @@ function cellClass(side: PositionSide) {
 }
 
 export function PositionHeatmap({ models, cycle }: PositionHeatmapProps) {
-  const nameById = Object.fromEntries(models.map((m) => [m.id, m.name.split(" ")[0]]));
+  const modelById = Object.fromEntries(models.map((m) => [m.id, m]));
 
   const rows = cycle?.perModel ?? models.map((m) => ({
     modelId: m.id,
@@ -35,20 +36,28 @@ export function PositionHeatmap({ models, cycle }: PositionHeatmapProps) {
           </span>
         ))}
       </div>
-      {rows.map((p) => (
+      {rows.map((p) => {
+        const model = modelById[p.modelId];
+        const visual = modelVisual(
+          p.modelId,
+          (model?.provider ?? "mock") as ModelProvider,
+        );
+        const label = model?.name.split(" ")[0] ?? p.modelId;
+        return (
         <div key={p.modelId} className="heatmap-row">
-          <span className="heatmap-label">{nameById[p.modelId] ?? p.modelId}</span>
+          <span className={`heatmap-label heatmap-label-brand-${visual.brand}`}>{label}</span>
           {p.decision.decisions.map((d) => (
             <span
               key={d.asset}
               className={cellClass(d.side)}
-              title={`${nameById[p.modelId]} · ${d.asset} · ${d.side}`}
+              title={`${label} · ${d.asset} · ${d.side}`}
             >
               {d.side === "FLAT" ? "—" : d.side.slice(0, 1)}
             </span>
           ))}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

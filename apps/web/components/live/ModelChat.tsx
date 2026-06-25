@@ -46,8 +46,8 @@ export function ModelChat({ cycle, models, filterModelId }: ModelChatProps) {
             <div key={`${p.modelId}-${cycle?.cycle}`} className="chat-item">
               <div className="chat-meta">
                 <span>
-                  <span className="chat-model">{name.toUpperCase()}</span>
-                  <span className="chat-tag">{visual.tag}</span>
+                  <span className={`chat-model ${visual.chatModelClass}`}>{name.toUpperCase()}</span>
+                  <span className={`chat-tag ${visual.chatTagClass}`}>{visual.tag}</span>
                 </span>
                 <span className="chat-time">
                   {cycle ? formatTime(cycle.timestamp) : "—"}

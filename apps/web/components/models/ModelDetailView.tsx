@@ -1,7 +1,7 @@
 import type { CycleResult } from "@ai-trading/shared";
 import type { ModelRecord } from "../../lib/api";
 import { formatUsd, formatTime, pnlClass, sideBadgeClass } from "../../lib/format";
-import { modelVisual, providerBadgeClass } from "../../lib/model-meta";
+import { modelBadgeClass, modelVisual } from "../../lib/model-meta";
 import { StakePanel } from "../staking/StakePanel";
 
 interface ModelDetailViewProps {
@@ -20,8 +20,8 @@ export function ModelDetailView({ model, cycle, rank }: ModelDetailViewProps) {
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
           <span className="mono" style={{ color: "var(--text-faint)" }}>#{rank}</span>
-          <span className="badge">{visual.tag}</span>
-          <span className={providerBadgeClass(model.provider)}>{model.provider}</span>
+          <span className={`badge ${visual.badgeClass}`}>{visual.tag}</span>
+          <span className={modelBadgeClass(model.id, model.provider)}>{visual.brandLabel}</span>
         </div>
         <h1 className="page-title" style={{ marginTop: 0 }}>{model.name}</h1>
         <p className="page-subtitle">{model.systemPrompt}</p>

@@ -9,10 +9,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import type { CycleResult, ModelProvider } from "@ai-trading/shared";
 import { formatUsd } from "../../lib/format";
 import { CHART } from "../../lib/chart-theme";
+import { modelChartColor } from "../../lib/model-meta";
 import type { LeaderboardEntry } from "../../lib/api";
-import type { CycleResult } from "@ai-trading/shared";
 
 interface ModelPnLChartProps {
   models: LeaderboardEntry[];
@@ -25,6 +26,7 @@ export function ModelPnLChart({ models, cycle }: ModelPnLChartProps) {
     return {
       name: m.name.split(" ")[0],
       pnl: outcome?.pnl ?? 0,
+      fill: modelChartColor(m.id, m.provider as ModelProvider),
     };
   });
 
@@ -58,11 +60,7 @@ export function ModelPnLChart({ models, cycle }: ModelPnLChartProps) {
           />
           <Bar dataKey="pnl" radius={0}>
             {data.map((d, i) => (
-              <Cell
-                key={i}
-                fill={d.pnl >= 0 ? CHART.positive : CHART.negative}
-                fillOpacity={0.85}
-              />
+              <Cell key={i} fill={d.fill} fillOpacity={d.pnl >= 0 ? 0.85 : 0.55} />
             ))}
           </Bar>
         </BarChart>

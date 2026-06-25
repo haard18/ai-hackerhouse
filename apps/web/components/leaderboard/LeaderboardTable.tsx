@@ -1,7 +1,8 @@
+import type { ModelProvider } from "@ai-trading/shared";
 import Link from "next/link";
 import type { LeaderboardEntry } from "../../lib/api";
 import { formatUsd, pnlClass } from "../../lib/format";
-import { providerBadgeClass } from "../../lib/model-meta";
+import { modelBadgeClass, modelVisual } from "../../lib/model-meta";
 
 interface LeaderboardTableProps {
   models: LeaderboardEntry[];
@@ -19,7 +20,7 @@ export function LeaderboardTable({ models, showLink = true }: LeaderboardTablePr
           <tr>
             <th>#</th>
             <th>Model</th>
-            <th>Provider</th>
+            <th>Lab</th>
             <th className="num">Balance</th>
             <th className="num">Return</th>
             <th className="num">Pool Shares</th>
@@ -28,6 +29,7 @@ export function LeaderboardTable({ models, showLink = true }: LeaderboardTablePr
         <tbody>
           {models.map((m, i) => {
             const ret = ((m.balance - start) / start) * 100;
+            const visual = modelVisual(m.id, m.provider as ModelProvider);
             return (
               <tr key={m.id}>
                 <td className="rank">{i + 1}</td>
@@ -41,7 +43,9 @@ export function LeaderboardTable({ models, showLink = true }: LeaderboardTablePr
                   )}
                 </td>
                 <td>
-                  <span className={providerBadgeClass(m.provider as "mock")}>{m.provider}</span>
+                  <span className={modelBadgeClass(m.id, m.provider as ModelProvider)}>
+                    {visual.brandLabel}
+                  </span>
                 </td>
                 <td className="num">{formatUsd(m.balance)}</td>
                 <td className={`num ${pnlClass(ret)}`}>
